@@ -1,0 +1,23 @@
+{
+    "name": "shabbyrobe/tempe",
+    "keywords": ["templating"],
+    "version": "1.0.0",
+    "license": "MIT",
+    "description": "Very simple, flexible templating language for PHP",
+    "homepage": "http://k3jw.com/code/tempe/",
+    "authors": [
+        {
+        	"name": "Blake Williams", 
+        	"email": "code@k3jw.com"
+        }
+    ],
+    "require": {
+    	"php": ">=5.4.0"
+    },
+    "autoload": {
+        "psr-4": {"Tempe\\": "lib/"}
+    },
+    "require-dev": {
+        "phpunit/phpunit": "4.1.*"
+    }
+}
