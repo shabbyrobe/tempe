@@ -192,11 +192,11 @@ class ParserTest extends \PHPUnit_Framework_TestCase
             ["foo {{! bar"],
         ];
 
-        foreach ($this->dataValidVars() as list ($tpl, ))
-            $tests[] = [$tpl];
+        foreach ($this->dataValidVars() as $test)
+            $tests[] = [$test[0]];
 
-        foreach ($this->dataValidBlocks() as list ($tpl, ))
-            $tests[] = [$tpl];
+        foreach ($this->dataValidBlocks() as $test)
+            $tests[] = [$test[0]];
         
         return $tests;
     }
