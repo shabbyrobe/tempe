@@ -11,9 +11,6 @@
         	"email": "code@k3jw.com"
         }
     ],
-    "require": {
-    	"php": ">=5.4.0"
-    },
     "autoload": {
         "psr-4": {"Tempe\\": "lib/"}
     },
