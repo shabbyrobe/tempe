@@ -13,7 +13,7 @@ simple but feature-rich template language, and it also comes bundled with a pre-
 generic language which provides semantics which will appear somewhat familiar to users of
 `handlebars.js <http://handlebarsjs.com/>`_.
 
-The canonical example... Using the basic web templating language, a typical Tempe
+And so, on to the canonical example. Using the basic web templating language, a typical Tempe
 template::
 
     Hello {{= name | as.html}}
@@ -214,12 +214,12 @@ Instantiating is easy:
 
 The basic language is made up of the following handlers:
 
-:``{{= key}}``: Echo the variable at ``key``
-:``{{# if key}}{{/if}}``: Conditionally display a block
-:``{{# not key}}{{/not}}``: Conditionally display a block (inverse ``if``)
-:``{{# each key}}{{/each}}``: Iterate over ``key``
-:``{{# block key}}{{/block}}``: Capture a block into ``key``, or filter a block's contents
-:``{{# push key}}{{push}}``: Push a scope onto the stack
+- ``{{= key}}``: Echo the variable at ``key``
+- ``{{# if key}}{{/if}}``: Conditionally display a block
+- ``{{# not key}}{{/not}}``: Conditionally display a block (inverse ``if``)
+- ``{{# each key}}{{/each}}``: Iterate over ``key``
+- ``{{# block key}}{{/block}}``: Capture a block into ``key``, or filter a block's contents
+- ``{{# push key}}{{push}}``: Push a scope onto the stack
 
 Some basic filter sets are provided as well:
 
@@ -333,11 +333,11 @@ Output::
 
 The following metavariables are made available in the scope:
 
-:``@key``:   The current array key
-:``@value``: The current array value
-:``@first``: Boolean indicating whether this is the first iteration
-:``@idx``:   0-based numeric index of current iteration
-:``@num``:   1-based numeric index of current iteration
+- ``@key`` -  The current array key
+- ``@value`` - The current array value
+- ``@first`` - Boolean indicating whether this is the first iteration
+- ``@idx`` -  0-based numeric index of current iteration
+- ``@num`` -  1-based numeric index of current iteration
 
 
 A new scope is created which is popped when the block exits. If the list element is an
@@ -485,15 +485,15 @@ Provided by ``Tempe\Filter\String``.
 
 The following filters are made available by default:
 
-:``upper``: Convert to upper case
-:``lower``: Convert to lower case
-:``ucfirst``: Convert the first character to upper case
-:``lcfirst``: Convert the first character to lower case
-:``ucwords``: Title Case All Words Just Like This Sentence
-:``trim``: Trim leading and trailing whitespace
-:``ltrim``: Trim leading whitespace
-:``rtrim``: Trim trailing whitespace
-:``rev``: Reverse the string
-:``nl2br``: Convert newlines to ``<br/>``
-:``striptags``: Remove any HTML tags. Uses `strip_tags() <http://php.net/strip_tags>`_
+- ``upper`` - Convert to upper case
+- ``lower`` - Convert to lower case
+- ``ucfirst`` - Convert the first character to upper case
+- ``lcfirst`` - Convert the first character to lower case
+- ``ucwords`` - Title Case All Words Just Like This Sentence
+- ``trim`` - Trim leading and trailing whitespace
+- ``ltrim`` - Trim leading whitespace
+- ``rtrim`` - Trim trailing whitespace
+- ``rev`` - Reverse the string
+- ``nl2br`` - Convert newlines to ``<br/>``
+- ``striptags`` - Remove any HTML tags. Uses `strip_tags() <http://php.net/strip_tags>`_
 
