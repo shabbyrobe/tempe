@@ -1,7 +1,12 @@
 Tempe
 =====
 
+.. image:: https://travis-ci.org/shabbyrobe/tempe.svg
+
 Tempe (temˈpē) is a very simple templating language.
+
+It is named after the suburb of Sydney, which is where I was driving when I decided how I
+wanted it to work. Inspirational story, eh!
 
 It provides very simple primitives which can be composed into your own domain specific,
 simple but feature-rich template language, and it also comes bundled with a pre-built
