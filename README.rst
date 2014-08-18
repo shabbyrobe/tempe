@@ -209,6 +209,15 @@ It allows you to include the tag opener (``{{``) in your output like so::
 
 It contains no identifiers and allows no whitespace.
 
+It is not necessary to escape a single curly brace except to disambiguate it from a tag
+opening. The following does not require escaping::
+
+    {"json": {"yep": {{= key | as.js }} }}
+
+But this example does::
+
+    {"json": {!{{= key | as.js }}: "yep" }}
+
 
 Cut To The Chase - I Just Wanna Make Web Pages
 ----------------------------------------------
