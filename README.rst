@@ -35,7 +35,7 @@ Will produce the following::
 
     Hello Chris
     You have just won 10000 dollars!
-    Well, 6000.0 dollars, after taxes.
+    Well, 6000 dollars, after taxes.
 
 
 .. contents::
@@ -100,6 +100,14 @@ like this::
 
 It contains no identifiers and allows no whitespace.
 
+.. warning::
+
+    The canonical example in the introduction demonstrates the use of the standalone tag
+    ``{{= key}}`` to place the value of ``key`` into the output. 
+    
+    ``{{=`` is **not** a tempe primitive; ``=`` is actually a ``handler`` which is
+    registered by the basic templating language extension.
+
 
 Standalone Tags
 ~~~~~~~~~~~~~~~
@@ -121,6 +129,7 @@ Template::
     3. {{echo foo | x}}
     4. {{echo foo | x | x}}
     5. {{echo | x | x}}
+    6. {{ echo|x|x }}
 
 Output::
 
@@ -129,6 +138,7 @@ Output::
     3. foox
     4. fooxx
     5. xx
+    6. xx
 
 
 Block Tags
@@ -226,6 +236,17 @@ Some basic filter sets are provided as well:
 - Web output escapers (quoting for HTML, etc)
 - String manipulation (``upper``, ``lower``, etc)
 
+.. warning::
+
+    *Tempe* does not do any escaping by default. It is incumbent on the template author to
+    be aware of the context in which they are emitting values **at all times**.
+    
+    Pádraic Brady's article `Automatic Output Escaping in PHP and the Real Future of
+    Preventing Cross-Site Scripting (XSS)
+    <http://blog.astrumfutura.com/2012/06/automatic-output-escaping-in-php-and-the-real-future-of-preventing-cross-site-scripting-xss/>`_
+    is essential reading for anyone who believes that automatic output escaping isn't a
+    bad idea.
+
 
 ``{{= key}}``: Echo a variable
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -262,17 +283,22 @@ Example:
     
     <?php
     $tmpl = "
-    {{# if yes}}     Visible {{/if}}
-    {{# if alsoYep}} Visible {{/if}}
-    {{# if nup}}     Not visible {{/if}}
-    {{# if unset}}   Not visible {{/if}}
+    {{# if yes     }} 1. Visible {{/if}}
+    {{# if alsoYep }} 2. Visible {{/if}}
+    {{# if nup     }} 3. Not visible {{/if}}
+    {{# if unset   }} 4. Not visible {{/if}}
     ";
     $vars = [
         "yes"=>true,
         "alsoYes"=>"hello",
         "nup"=>false,
     ];
-    $out = $renderer->render($tmpl, $vars);
+    echo $renderer->render($tmpl, $vars);
+
+Output::
+
+    1. Visible
+    2. Visible
 
 
 ``{{#not key}}{{/not}}``: Conditionally display a block (inverse ``if``)
@@ -289,17 +315,22 @@ Example:
     
     <?php
     $tmpl = "
-    {{# not yes}}     Not Visible {{/not}}
-    {{# not alsoYep}} Not Visible {{/not}}
-    {{# not nup}}     Visible {{/not}}
-    {{# not unset}}   Visible {{/not}}
+    {{# not yes     }} 1. Not Visible {{/not}}
+    {{# not alsoYep }} 2. Not Visible {{/not}}
+    {{# not nup     }} 3. Visible {{/not}}
+    {{# not unset   }} 4. Visible {{/not}}
     ";
     $vars = [
         "yes"=>true,
         "alsoYes"=>"hello",
         "nup"=>false,
     ];
-    $out = $renderer->render($tmpl, $vars);
+    echo $renderer->render($tmpl, $vars);
+
+Output::
+
+    3. Visible
+    4. Visible
 
 
 ``{{# each key}}{{/each}}``: Iterate
