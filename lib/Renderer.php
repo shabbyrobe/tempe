@@ -7,7 +7,7 @@ class Renderer
     const P_STRING = 2;
     const P_BLOCK = 3;
     const P_VAR = 4;
-    const P_OPEN = 5;
+    const P_ESC = 5;
 
     public $blockHandlers = [];
     public $varHandlers = [];
@@ -112,8 +112,8 @@ class Renderer
 
                 $out .= $val;
             }
-            elseif ($node->t == self::P_OPEN) {
-                $out .= '{{';
+            elseif ($node->t == self::P_ESC) {
+                $out .= '{';
             }
             else {
                 $name = Helper::nodeName($node->t);

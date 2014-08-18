@@ -93,10 +93,13 @@ Block tags look like this::
 Whitespace inside tags between symbols is ignored. ``{{handler key|filter|filter}}`` is
 identical to ``{{  handler  key  |  filter  |  filter  }}``
 
-The escape sequence allows you to include the tag opener (``{{``) in your output and looks
-like this::
+The escape sequence simply emits a curly brace and looks like this::
 
-    {{!
+    {!
+
+It allows you to include the tag opener (``{{``) in your output like so::
+
+    {!{!
 
 It contains no identifiers and allows no whitespace.
 
@@ -196,16 +199,15 @@ invalid::
 Escape Sequence
 ~~~~~~~~~~~~~~~
 
-The escape sequence allows you to include the tag opener (``{{``) in your output.  It
-contains no identifiers and allows no whitespace.
+The escape sequence simply emits a curly brace and looks like this::
 
-Template::
+    {!
 
-    {{!
+It allows you to include the tag opener (``{{``) in your output like so::
 
-Outputs::
+    {!{!
 
-    {{
+It contains no identifiers and allows no whitespace.
 
 
 Cut To The Chase - I Just Wanna Make Web Pages

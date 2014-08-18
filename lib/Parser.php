@@ -12,7 +12,7 @@ class Parser
 
     function tokenise($in)
     {
-        $pattern = '~( \{\{!? | \}\} | \r\n | \n | \r )~x';
+        $pattern = '~( \{! | \{\{ | \}\} | \r\n | \n | \r )~x';
 
         $flags = PREG_SPLIT_DELIM_CAPTURE | PREG_SPLIT_NO_EMPTY;
         $tokens = preg_split($pattern, $in, null, $flags);
@@ -47,7 +47,7 @@ class Parser
 
             switch ($currentMode) {
             case self::M_STRING:
-                if ($current == '{{!' || $current == '{{') {
+                if ($current == '{!' || $current == '{{') {
                     if ($buffer) {
                         $node->c[] = (object)['t'=>Renderer::P_STRING, 'v'=>$buffer, 'l'=>$bufferLine];
                         $bufferLine = $line;
@@ -58,7 +58,7 @@ class Parser
                     }
                     else {
                         $buffer = '';
-                        $node->c[] = (object)['t'=>Renderer::P_OPEN, 'l'=>$line, 'v'=>$current];
+                        $node->c[] = (object)['t'=>Renderer::P_ESC, 'l'=>$line, 'v'=>$current];
                     }
                 }
                 else {
@@ -70,7 +70,7 @@ class Parser
                 $buffer .= $current;
 
                 switch ($current) {
-                case '{{!':
+                case '{!':
                 case '{{':
                     throw new ParseException("Unexpected $current at line $line");
 
@@ -146,6 +146,11 @@ class Parser
             }
         }
 
+        if ($currentMode == self::M_TAG)
+            throw new ParseException("Tag close mismatch, open was on line $bufferLine");
+        if ($node != $tree)
+            throw new ParseException("Unclosed block {$node->h}({$node->k}) on line {$node->l}");
+
         if ($buffer) {
             $node->c[] = (object)[
                 't'=>Renderer::P_STRING, 'v'=>$buffer, 'l'=>$bufferLine,
@@ -182,7 +187,7 @@ class Parser
 
                     case Renderer::P_STRING:
                     case Renderer::P_VAR:
-                    case Renderer::P_OPEN:
+                    case Renderer::P_ESC:
                         $out .= $current->v;
                     break;
 

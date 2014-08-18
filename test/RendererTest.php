@@ -271,9 +271,9 @@ class RendererTest extends \PHPUnit_Framework_TestCase
     function dataRenderEscapedBraces()
     {
         return [
-            ['{{!do tag}}',     '{{do tag}}'],
-            ['foo {{!{{! bar',  'foo {{{{ bar'],
-            ['{{!{{do tag}}}}', '{{handled}}'],
+            ['{!{!do tag}}',     '{{do tag}}'],
+            ['foo {!{! bar',     'foo {{ bar'],
+            ['{!{!{{do tag}}}}', '{{handled}}'],
         ];
     }
 

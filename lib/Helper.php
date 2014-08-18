@@ -40,8 +40,8 @@ class Helper
             return 'P_BLOCK';
         case Renderer::P_VAR:
             return 'P_VAR';
-        case Renderer::P_OPEN:
-            return 'P_OPEN';
+        case Renderer::P_ESC:
+            return 'P_ESC';
         default:
             return 'UNKNOWN';
         }

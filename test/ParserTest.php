@@ -46,10 +46,60 @@ class ParserTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals(3, $node->l);
     }
 
-    function testParseOpen()
+    function testParseUnclosedTagFails()
     {
+        $this->setExpectedException("Tempe\ParseException", "Tag close mismatch, open was on line 1");
+        $tree = $this->parser->parse('{{foo}}{{notclosed');
+    }
+
+    function testParseUnmatchedBlockFails()
+    {
+        $this->setExpectedException("Tempe\ParseException", "Unclosed block pants() on line 1");
+        $tree = $this->parser->parse('{{# pants}}');
+    }
+
+    function testParseUnmatchedBlockWithKeyFails()
+    {
+        $this->setExpectedException("Tempe\ParseException", "Unclosed block pants(key) on line 1");
+        $tree = $this->parser->parse('{{# pants key}}');
+    }
+
+    function testParseUnmatchedNestedBlockFails()
+    {
+        $this->setExpectedException("Tempe\ParseException", "Unclosed block trou() on line 2");
+        $tree = $this->parser->parse("{{# pants key}}\n{{# trou}}");
+    }
+
+    function testParseEscape()
+    {
+        $tree = $this->parser->parse('{!');
+        $expected = [(object)['t'=>Renderer::P_ESC, 'v'=>'{!']];
+        $this->assertNodes($expected, $tree->c);
+    }
+
+    function testParseEscapeAfterUnescapedBraceFails()
+    {
+        $this->setExpectedException("Tempe\ParseException", "Tag close mismatch, open was on line 1");
         $tree = $this->parser->parse('{{!');
-        $expected = [(object)['t'=>Renderer::P_OPEN, 'v'=>'{{!']];
+    }
+
+    function testParseMultipleEscape()
+    {
+        $tree = $this->parser->parse('{!{!');
+        $expected = [
+            ['t'=>Renderer::P_ESC, 'v'=>'{!'],
+            ['t'=>Renderer::P_ESC, 'v'=>'{!'],
+        ];
+        $this->assertNodes($expected, $tree->c);
+    }
+
+    function testParseEscapeFollowedByTag()
+    {
+        $tree = $this->parser->parse('{!{{=}}');
+        $expected = [
+            ['t'=>Renderer::P_ESC, 'v'=>'{!'],
+            ['t'=>Renderer::P_VAR, 'v'=>'{{=}}'],
+        ];
         $this->assertNodes($expected, $tree->c);
     }
 
@@ -78,9 +128,10 @@ class ParserTest extends \PHPUnit_Framework_TestCase
             goto oops;
 
         foreach ($expected as $idx=>$eNode) {
+            $eNode = (object) $eNode;
             if (!isset($nodes[$idx]))
                 throw new \UnexpectedValueException();
-            $tNode = $nodes[$idx];
+            $tNode = (object) $nodes[$idx];
 
             foreach (get_object_vars($eNode) as $k=>$v) {
                 if ($k=='c')
@@ -188,8 +239,9 @@ class ParserTest extends \PHPUnit_Framework_TestCase
     function dataUnparse()
     {
         $tests = [
-            ["{{!"],
-            ["foo {{! bar"],
+            ["{!{!"],
+            ["foo {!{! bar"],
+            ["foo {!{{foo}} bar"],
         ];
 
         foreach ($this->dataValidVars() as $test)
