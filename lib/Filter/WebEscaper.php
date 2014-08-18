@@ -5,14 +5,14 @@ class WebEscaper
 {
 	public $charset;
 
-	public function __construct($charset='UTF-8')
+	public function __construct($charset=null)
 	{
-        $this->charset = $charset;
+        $this->charset = $charset ?: 'UTF-8';
 	}
 
-    static function asExtension($filterName='as')
+    static function asExtension($filterName=null, $charset=null)
     {
-        return (object)['filters'=>[$filterName=>new static]];
+        return (object)['filters'=>[$filterName ?: 'as'=>new static($charset)]];
     }
 
 	public function urlQuery($input)

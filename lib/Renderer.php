@@ -29,10 +29,16 @@ class Renderer
         return new static([new Ext\Lang, new Ext\String]);
     }
 
-    static function createBasicWeb()
+    static function createBasicWeb($options=[])
     {
+        $default = [
+            // Default is declared in Filter\WebEscaper as UTF-8
+            'charset'=>null,
+        ];
+        $options = $options + $default;
+
         $r = static::createBasic();
-        $r->addExtension(['filters'=>['as'=>new Filter\WebEscaper]]);
+        $r->addExtension(['filters'=>['as'=>new Filter\WebEscaper($options['charset'])]]);
         return $r;
     }
 
