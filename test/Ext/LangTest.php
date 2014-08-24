@@ -30,27 +30,27 @@ class LangTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals([], array_keys($c->blockHandlers));
     }
 
-    function testVarHandlerOutput()
+    function testValueHandlerOutput()
     {
         $c = new Ext\Lang();
         $vars = ['foo'=>'yep'];
-        $result = $c->varHandlers['=']($vars, 'foo');
+        $result = $c->valueHandlers['=']($vars, 'foo');
         $this->assertEquals('yep', $result);
     }
 
-    function testVarHandlerOutputMissingKeyDefault()
+    function testValueHandlerOutputMissingKeyDefault()
     {
         $c = new Ext\Lang();
         $vars = [];
-        $result = $c->varHandlers['=']($vars, 'foo');
+        $result = $c->valueHandlers['=']($vars, 'foo');
         $this->assertEquals('', $result);
     }
 
-    function testVarHandlerOutputMissingKeyFailsWhenDisallowed()
+    function testValueHandlerOutputMissingKeyFailsWhenDisallowed()
     {
         $c = new Ext\Lang(['allowUnsetKeys'=>false]);
         $vars = [];
         $this->setExpectedException('Tempe\RenderException', 'Unknown variable foo');
-        $result = $c->varHandlers['=']($vars, 'foo');
+        $result = $c->valueHandlers['=']($vars, 'foo');
     }
 }

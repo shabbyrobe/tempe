@@ -64,7 +64,7 @@ enough).
 Primitives
 ----------
 
-There are three types of primitive in the Tempe language - **standalone tags**, **block
+There are three types of primitive in the Tempe language - **value tags**, **block
 tags** and the **escape sequence**.
 
 All tag primitives are opened with ``{{`` and closed with ``}}``. Unlike Mustache, this
@@ -75,7 +75,7 @@ and which must satisfy the following regex (with some minor exceptions, mentione
 
     [a-zA-Z\d_]([a-zA-Z_\.\-\d]*[a-zA-Z\d])*
 
-Standalone tags look like this::
+Value tags look like this::
 
     {{ handler }}
     {{ handler key }}
@@ -93,6 +93,8 @@ Block tags look like this::
 Whitespace inside tags between symbols is ignored. ``{{handler key|filter|filter}}`` is
 identical to ``{{  handler  key  |  filter  |  filter  }}``
 
+"Whitespace" is equivalent to the PCRE ``\s`` escape sequence (LF, CR, FF, HTAB, SPACE).
+
 The escape sequence simply emits a curly brace and looks like this::
 
     {!
@@ -101,21 +103,31 @@ It allows you to include the tag opener (``{{``) in your output like so::
 
     {!{!
 
-It contains no identifiers and allows no whitespace.
+Whitespace-only tags and empty tags are allowed. This can be used for basic whitespace
+control::
+
+    {{}}
+    {{
+        }}
+    {{#    }}{{/      }}
+
+You can simulate template comments by using an empty block::
+
+    {{#}}This will not appear{{/}}
 
 .. warning::
 
-    The canonical example in the introduction demonstrates the use of the standalone tag
+    The canonical example in the introduction demonstrates the use of the value tag
     ``{{= key}}`` to place the value of ``key`` into the output. 
     
-    ``{{=`` is **not** a tempe primitive; ``=`` is actually a ``handler`` which is
+    ``{{=`` is **not** a Tempe primitive; ``=`` is actually a ``handler`` which is
     registered by the basic templating language extension.
 
 
-Standalone Tags
-~~~~~~~~~~~~~~~
+Value Tags
+~~~~~~~~~~
 
-Standalone tags invoke a ``handler`` function which will be passed an optional ``key``.
+Value tags invoke a ``handler`` function which will be passed an optional ``key``.
 The return value of the ``handler``  will be piped through each optional ``filter``
 specified one after the other.
 
@@ -123,7 +135,7 @@ The resulting string will be appended to the output.
 
 Assuming a handler ``echo`` is registered which returns the key exactly as passed, and the
 filter ``x`` is registered which appends the string ``x`` to its input, the following
-demonstrates the different ways a standalone tag can be invoked:
+demonstrates the different ways a value tag can be invoked:
 
 Template::
 
@@ -160,7 +172,7 @@ Assuming the following things are registerd with the renderer:
 
 - a block handler ``double`` which returns the key exactly as passed and then invokes
   the renderer with the contents twice,
-- a var handler ``echo`` which returns the key exactly as passed,
+- a value handler ``echo`` which returns the key exactly as passed,
 - a filter ``x`` which appends the string ``x`` to its input
 
 The following example demonstrates block tags:
@@ -219,8 +231,8 @@ But this example does::
     {"json": {!{{= key | as.js }}: "yep" }}
 
 
-Cut To The Chase - I Just Wanna Make Web Pages
-----------------------------------------------
+Cut To The Chase. I Just Wanna Make Web Pages
+---------------------------------------------
 
 The simplest way to get started making web templates is to use the basic web language. You
 get ``if``, ``each`` and ``=`` handlers for free (along with a few others), as well as the
@@ -262,7 +274,7 @@ Some basic filter sets are provided as well:
 ``{{= key}}``: Echo a variable
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Standalone handler which output the variable ``key`` from the current scope::
+Value handler which output the variable ``key`` from the current scope::
 
     {{= key}}
 

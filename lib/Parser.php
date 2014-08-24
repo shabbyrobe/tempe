@@ -107,7 +107,7 @@ class Parser
                         if ($match['type'] == '#') {
                             $node = $node->c[] = (object)[
                                 't'=>Renderer::P_BLOCK, 'h'=>$handler, 'k'=>$key,
-                                'f'=>$filters, 'c'=>[], 'l'=>$line, 'vo'=>$match[0],
+                                'f'=>$filters, 'c'=>[], 'l'=>$bufferLine, 'vo'=>$match[0],
                             ];
                             $stack[++$stackIdx] = $node;
                         }
@@ -134,8 +134,8 @@ class Parser
                     }
                     else {
                         $node->c[] = (object)[
-                            't'=>Renderer::P_VAR, 'h'=>$handler, 'k'=>$key, 
-                            'f'=>$filters, 'l'=>$line, 'v'=>$match[0],
+                            't'=>Renderer::P_VALUE, 'h'=>$handler, 'k'=>$key, 
+                            'f'=>$filters, 'l'=>$bufferLine, 'v'=>$match[0],
                         ];
                     }
                     $buffer = '';
@@ -188,7 +188,7 @@ class Parser
                     break;
 
                     case Renderer::P_STRING:
-                    case Renderer::P_VAR:
+                    case Renderer::P_VALUE:
                     case Renderer::P_ESC:
                         $out .= $current->v;
                     break;

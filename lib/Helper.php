@@ -38,8 +38,8 @@ class Helper
             return 'P_STRING';
         case Renderer::P_BLOCK:
             return 'P_BLOCK';
-        case Renderer::P_VAR:
-            return 'P_VAR';
+        case Renderer::P_VALUE:
+            return 'P_VALUE';
         case Renderer::P_ESC:
             return 'P_ESC';
         default:

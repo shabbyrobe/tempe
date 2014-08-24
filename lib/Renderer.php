@@ -6,11 +6,11 @@ class Renderer
     const P_ROOT = 1;
     const P_STRING = 2;
     const P_BLOCK = 3;
-    const P_VAR = 4;
+    const P_VALUE = 4;
     const P_ESC = 5;
 
     public $blockHandlers = [];
-    public $varHandlers = [];
+    public $valueHandlers = [];
     public $filters = [];
 
     public $extensions;
@@ -50,9 +50,9 @@ class Renderer
                 $this->blockHandlers[$k] = $h;
         }
 
-        if (isset($e->varHandlers)) {
-            foreach ($e->varHandlers as $k=>$h)
-                $this->varHandlers[$k] = $h;
+        if (isset($e->valueHandlers)) {
+            foreach ($e->valueHandlers as $k=>$h)
+                $this->valueHandlers[$k] = $h;
         }
 
         if (isset($e->filters)) {
@@ -77,17 +77,17 @@ class Renderer
             if ($node->t == self::P_STRING) {
                 $out .= $node->v;
             }
-            elseif ($node->t == self::P_VAR || $node->t == self::P_BLOCK) {
+            elseif ($node->t == self::P_VALUE || $node->t == self::P_BLOCK) {
                 $val = null;
 
                 if (!$node->h)
                     continue;
 
-                if ($node->t == self::P_VAR) {
-                    if (!isset($this->varHandlers[$node->h]))
-                        $this->raise("Unknown var handler {$node->h}", $node);
+                if ($node->t == self::P_VALUE) {
+                    if (!isset($this->valueHandlers[$node->h]))
+                        $this->raise("Unknown value handler {$node->h}", $node);
 
-                    $h = $this->varHandlers[$node->h];
+                    $h = $this->valueHandlers[$node->h];
                     $val = $h($vars, $node->k, $this);
                 }
                 else {

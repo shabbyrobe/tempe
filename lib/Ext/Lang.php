@@ -86,7 +86,7 @@ class Lang
             };
         }
 
-        $this->varHandlers = [
+        $this->valueHandlers = [
             '='=>function(&$scope, $key) {
                 if (isset($scope[$key]))
                     return $scope[$key];

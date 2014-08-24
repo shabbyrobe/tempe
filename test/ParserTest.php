@@ -36,7 +36,7 @@ class ParserTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals(1, $node->l);
 
         $node = $tree->c[1];
-        $this->assertEquals(Renderer::P_VAR, $node->t);
+        $this->assertEquals(Renderer::P_VALUE, $node->t);
         $this->assertEquals("{{=}}", $node->v);
         $this->assertEquals(3, $node->l);
 
@@ -46,12 +46,56 @@ class ParserTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals(3, $node->l);
     }
 
-    function testWhitespaceTag()
+    function testWhitespaceValue()
     {
         $tpl = "{{  \t\t\n\n}}";
         $tree = $this->parser->parse($tpl);
         $expected = [
-            ['t'=>Renderer::P_VAR, 'v'=>$tpl, 'h'=>null, 'k'=>null, 'f'=>[]],
+            ['t'=>Renderer::P_VALUE, 'l'=>1, 'v'=>$tpl, 'h'=>null, 'k'=>null, 'f'=>[]],
+        ];
+        $this->assertNodes($expected, $tree->c);
+        $this->assertEquals($tpl, $this->parser->unparse($tree));
+    }
+
+    function testWhitespaceBlock()
+    {
+        $tpl = "{{#  \t\t\n\n}}{{/\n\n\t\t  }}";
+        $tree = $this->parser->parse($tpl);
+        $expected = [
+            [
+                'l'=>1,
+                't'=>Renderer::P_BLOCK,
+                'vo'=>"{{#  \t\t\n\n}}",
+                "vc"=>"{{/\n\n\t\t  }}",
+                'h'=>null,
+                'k'=>null,
+                'f'=>[],
+            ],
+        ];
+        $this->assertNodes($expected, $tree->c);
+        $this->assertEquals($tpl, $this->parser->unparse($tree));
+    }
+
+    function testEmptyValue()
+    {
+        $tpl = "{{}}";
+        $tree = $this->parser->parse($tpl);
+        $expected = [
+            ['t'=>Renderer::P_VALUE, 'l'=>1, 'v'=>$tpl, 'h'=>null, 'k'=>null, 'f'=>[]],
+        ];
+        $this->assertNodes($expected, $tree->c);
+        $this->assertEquals($tpl, $this->parser->unparse($tree));
+    }
+
+    function testEmptyBlock()
+    {
+        $tpl = "{{#}}{{/}}";
+        $tree = $this->parser->parse($tpl);
+        $expected = [
+            [
+                't'=>Renderer::P_BLOCK, 'l'=>1, 'vo'=>'{{#}}', 'vc'=>'{{/}}', 
+                'h'=>null, 'k'=>null, 'f'=>[]
+            ],
         ];
         $this->assertNodes($expected, $tree->c);
         $this->assertEquals($tpl, $this->parser->unparse($tree));
@@ -109,7 +153,7 @@ class ParserTest extends \PHPUnit_Framework_TestCase
         $tree = $this->parser->parse('{!{{=}}');
         $expected = [
             ['t'=>Renderer::P_ESC, 'v'=>'{!'],
-            ['t'=>Renderer::P_VAR, 'v'=>'{{=}}'],
+            ['t'=>Renderer::P_VALUE, 'v'=>'{{=}}'],
         ];
         $this->assertNodes($expected, $tree->c);
     }
@@ -164,20 +208,20 @@ class ParserTest extends \PHPUnit_Framework_TestCase
     }
 
     /**
-     * @dataProvider dataValidVars
+     * @dataProvider dataValidValues
      */
-    function testParseValidVar($tpl, $expected)
+    function testParseValidValue($tpl, $expected)
     {
         $tree = $this->parser->parse($tpl);
         $this->assertCount(1, $tree->c);
         $node = $tree->c[0];
 
-        $this->assertEquals(Renderer::P_VAR, $node->t);
+        $this->assertEquals(Renderer::P_VALUE, $node->t);
         foreach ($expected as $k=>$v)
             $this->assertEquals($v, $node->$k);
     }
 
-    function dataValidVars()
+    function dataValidValues()
     {
         return [
             ['{{h}}'                        , ['h'=>'h', 'k'=>null]],
@@ -255,7 +299,7 @@ class ParserTest extends \PHPUnit_Framework_TestCase
             ["foo {!{{foo}} bar"],
         ];
 
-        foreach ($this->dataValidVars() as $test)
+        foreach ($this->dataValidValues() as $test)
             $tests[] = [$test[0]];
 
         foreach ($this->dataValidBlocks() as $test)
