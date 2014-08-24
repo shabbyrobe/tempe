@@ -78,11 +78,13 @@ class Parser
                     if (!preg_match(
                         '~^\{\{
                         (?P<type>[\#/])?
-                        [ ]*
-                        (?P<handler>(=|('.static::$identifierPattern.')))
-                        ([ ]+(?P<key>\@?'.static::$identifierPattern.'))?
-                        (?P<filters>(\s*\|\s*'.static::$identifierPattern.')+)?
-                        [ ]*
+                        \s*
+                        (?:
+                            (?P<handler>(=|('.static::$identifierPattern.')))
+                            (\s+(?P<key>\@?'.static::$identifierPattern.'))?
+                            (?P<filters>(\s*\|\s*'.static::$identifierPattern.')+)?
+                            \s*
+                        )?
                         \}\}$~x', 
                         $buffer,
                         $match)
@@ -91,7 +93,7 @@ class Parser
                     }
 
                     $key = isset($match['key']) ? $match['key'] : null;
-                    $handler = $match['handler'];
+                    $handler = isset($match['handler']) ? $match['handler'] : null;
 
                     $filters = isset($match['filters']) 
                         ? preg_split('~\s*\|\s*~', $match['filters'], null, PREG_SPLIT_NO_EMPTY) 

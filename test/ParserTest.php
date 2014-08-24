@@ -46,6 +46,17 @@ class ParserTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals(3, $node->l);
     }
 
+    function testWhitespaceTag()
+    {
+        $tpl = "{{  \t\t\n\n}}";
+        $tree = $this->parser->parse($tpl);
+        $expected = [
+            ['t'=>Renderer::P_VAR, 'v'=>$tpl, 'h'=>null, 'k'=>null, 'f'=>[]],
+        ];
+        $this->assertNodes($expected, $tree->c);
+        $this->assertEquals($tpl, $this->parser->unparse($tree));
+    }
+
     function testParseUnclosedTagFails()
     {
         $this->setExpectedException("Tempe\ParseException", "Tag close mismatch, open was on line 1");
