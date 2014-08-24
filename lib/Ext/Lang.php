@@ -7,8 +7,6 @@ class Lang
 
     function __construct($options=[])
     {
-        $ext = $this;
-
         if (isset($options['allowUnsetKeys'])) {
             $this->allowUnsetKeys = $options['allowUnsetKeys'] == true;
             unset($options['allowUnsetKeys']);
@@ -28,30 +26,34 @@ class Lang
         $this->blockHandlers = [];
         
         if ($blocks['if']) {
-            $this->blockHandlers['if'] = function(&$scope, $key, $contentTree) {
+            $this->blockHandlers['if'] = function(&$scope, $key, $contentTree, $renderer) {
                 if (isset($scope[$key]) && $scope[$key])
-                    return $this->renderTree($contentTree, $scope);
+                    return $renderer->renderTree($contentTree, $scope);
             };
         }
 
         if ($blocks['not']) {
-            $this->blockHandlers['not'] = function(&$scope, $key, $contentTree) {
+            $this->blockHandlers['not'] = function(&$scope, $key, $contentTree, $renderer) {
                 if (!isset($scope[$key]) || !$scope[$key])
-                    return $this->renderTree($contentTree, $scope);
+                    return $renderer->renderTree($contentTree, $scope);
             };
         }
 
         if ($blocks['each']) {
-            $this->blockHandlers['each'] = function(&$scope, $key, $contentTree) use ($ext) {
-                if (!$ext->allowUnsetKeys && !isset($scope[$key]))
-                    throw new \Tempe\RenderException("Unknown variable $key");
+            $this->blockHandlers['each'] = function(&$scope, $key, $contentTree, $renderer) {
+                if (!isset($scope[$key])) {
+                    if (!$this->allowUnsetKeys)
+                        throw new \Tempe\RenderException("Unknown variable $key");
+                    else
+                        return;
+                }
 
                 $out = '';
                 $idx = 0;
                 foreach ($scope[$key] as $key=>$item) {
                     $kv = ['@key'=>$key, '@value'=>$item, '@first'=>$idx == 0, '@idx'=>$idx, '@num'=>$idx+1];
                     $curScope = is_array($item) ? array_merge($scope, $item, $kv) : $kv;
-                    $out .= $this->renderTree($contentTree, $curScope);
+                    $out .= $renderer->renderTree($contentTree, $curScope);
                     $idx++;
                 }
                 return $out;
@@ -59,8 +61,8 @@ class Lang
         }
 
         if ($blocks['block']) {
-            $this->blockHandlers['block'] = function(&$scope, $key, $contentTree) {
-                $out = $this->renderTree($contentTree, $scope);
+            $this->blockHandlers['block'] = function(&$scope, $key, $contentTree, $renderer) {
+                $out = $renderer->renderTree($contentTree, $scope);
                 if ($key)
                     $scope[$key] = $out;
                 else
@@ -69,22 +71,26 @@ class Lang
         }
 
         if ($blocks['push']) {
-            $this->blockHandlers['push'] = function(&$scope, $key, $contentTree) use ($ext) {
-                if (!isset($scope[$key]) && !$ext->allowUnsetKeys)
-                    throw new \Tempe\RenderException("Unknown variable $key");
+            $this->blockHandlers['push'] = function(&$scope, $key, $contentTree, $renderer) {
+                if (!isset($scope[$key])) {
+                    if (!$this->allowUnsetKeys)
+                        throw new \Tempe\RenderException("Unknown variable $key");
+                    else
+                        return;
+                }
 
                 $newScope = $scope;
                 $item = $scope[$key];
                 $newScope = $item + $newScope;
-                return $this->renderTree($contentTree, $newScope);
+                return $renderer->renderTree($contentTree, $newScope);
             };
         }
 
         $this->varHandlers = [
-            '='=>function(&$scope, $key) use ($ext) {
+            '='=>function(&$scope, $key) {
                 if (isset($scope[$key]))
                     return $scope[$key];
-                elseif (!$ext->allowUnsetKeys)
+                elseif (!$this->allowUnsetKeys)
                     throw new \Tempe\RenderException("Unknown variable $key");
             },
         ];

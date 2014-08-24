@@ -5,6 +5,23 @@ use Tempe\Ext;
 
 class AcceptanceTest extends \PHPUnit_Framework_TestCase
 {
+    function testEachUnsetAllowed()
+    {
+        $tpl = "{{#each foo}}yep{{/each}}";
+        $r = $this->getRenderer(new \Tempe\Ext\Lang(['allowUnsetKeys'=>true]));
+        $vars = [];
+        $this->assertEquals("", $r->render($tpl, $vars));
+    }
+
+    function testEachUnsetNotAllowed()
+    {
+        $tpl = "{{#each foo}}yep{{/each}}";
+        $r = $this->getRenderer(new \Tempe\Ext\Lang(['allowUnsetKeys'=>false]));
+        $vars = [];
+        $this->setExpectedException("Tempe\RenderException", "Unknown variable foo");
+        $r->render($tpl, $vars);
+    }
+
     function testEachAssocArray()
     {
         $tpl = "{{#each foo}}{{= a1}} {{= a2}}\n{{/each}}";
@@ -147,6 +164,23 @@ class AcceptanceTest extends \PHPUnit_Framework_TestCase
         $r = $this->getRenderer();
         $this->assertEquals($expected, $r->render($tpl, $vars));
         $this->assertEquals($initialVars, $vars);
+    }
+
+    function testPushUnsetAllowed()
+    {
+        $tpl = "{{#push foo}}yep{{/push}}";
+        $r = $this->getRenderer(new \Tempe\Ext\Lang(['allowUnsetKeys'=>true]));
+        $vars = [];
+        $this->assertEquals("", $r->render($tpl, $vars));
+    }
+
+    function testPushUnsetNotAllowed()
+    {
+        $tpl = "{{#push foo}}yep{{/push}}";
+        $r = $this->getRenderer(new \Tempe\Ext\Lang(['allowUnsetKeys'=>false]));
+        $vars = [];
+        $this->setExpectedException("Tempe\RenderException", "Unknown variable foo");
+        $r->render($tpl, $vars);
     }
 
     private function getRenderer($ext=null)

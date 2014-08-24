@@ -72,7 +72,10 @@ class BlockIfTest extends \PHPUnit_Framework_TestCase
             ->with($contents)
             ->will($this->returnValue($return))
         ;
-        $this->assertEquals($return, $this->renderer->blockHandlers[$handler]($vars, $key, $contents));
+        $this->assertEquals(
+            $return,
+            $this->renderer->blockHandlers[$handler]($vars, $key, $contents, $this->renderer)
+        );
     }
 
     function runHiddenBlockTest($handler, $vars, $key, $ext=null)
@@ -80,7 +83,9 @@ class BlockIfTest extends \PHPUnit_Framework_TestCase
         $contents = new \stdClass;
         $this->renderer->addExtension($ext ?: new Ext\Lang);
         $this->renderer->expects($this->never())->method('renderTree');
-        $this->assertEmpty($this->renderer->blockHandlers[$handler]($vars, $key, $contents));
+        $this->assertEmpty(
+            $this->renderer->blockHandlers[$handler]($vars, $key, $contents, $this->renderer)
+        );
     }
 
     function dataTruthy()

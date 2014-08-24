@@ -47,17 +47,17 @@ class Renderer
         $e = (object) $e;
         if (isset($e->blockHandlers)) {
             foreach ($e->blockHandlers as $k=>$h)
-                $this->blockHandlers[$k] = $h instanceof \Closure ? $h->bindTo($this) : $h;
+                $this->blockHandlers[$k] = $h;
         }
 
         if (isset($e->varHandlers)) {
             foreach ($e->varHandlers as $k=>$h)
-                $this->varHandlers[$k] = $h instanceof \Closure ? $h->bindTo($this) : $h;
+                $this->varHandlers[$k] = $h;
         }
 
         if (isset($e->filters)) {
             foreach ($e->filters as $k=>$h)
-                $this->filters[$k] = $h instanceof \Closure ? $h->bindTo($this) : $h;
+                $this->filters[$k] = $h;
         }
     }
 
@@ -80,19 +80,22 @@ class Renderer
             elseif ($node->t == self::P_VAR || $node->t == self::P_BLOCK) {
                 $val = null;
 
+                if (!$node->h)
+                    continue;
+
                 if ($node->t == self::P_VAR) {
                     if (!isset($this->varHandlers[$node->h]))
                         $this->raise("Unknown var handler {$node->h}", $node);
 
                     $h = $this->varHandlers[$node->h];
-                    $val = $h($vars, $node->k, null);
+                    $val = $h($vars, $node->k, $this);
                 }
                 else {
                     if (!isset($this->blockHandlers[$node->h]))
                         $this->raise("Unknown block handler {$node->h}", $node);
 
                     $h = $this->blockHandlers[$node->h];
-                    $val = $h($vars, $node->k, $node);
+                    $val = $h($vars, $node->k, $node, $this);
                 }
 
                 if ($node->f) {
