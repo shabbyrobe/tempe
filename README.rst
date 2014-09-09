@@ -175,11 +175,10 @@ specified one after the other.
 
 The resulting string will be appended to the output.
 
-Assuming the following things are registerd with the renderer:
+Assuming the following things are registered with the renderer:
 
 - a block handler ``double`` which returns the key exactly as passed and then invokes
   the renderer with the contents twice,
-- a value handler ``echo`` which returns the key exactly as passed,
 - a filter ``x`` which appends the string ``x`` to its input
 
 The following example demonstrates block tags:
@@ -188,15 +187,17 @@ Template::
 
     1. {{# double foo}} bar{{/double}}
     2. {{# double foo | x}} bar{{/ double}}
-    3. {{# double | x}}bar {{/ double}}
-    4. {{# double foo | x}}bar {{/ double foo}}
+    3. {{# double foo | x | x}} bar{{/ double}}
+    4. {{# double | x}}bar {{/ double}}
+    5. {{# double foo | x}}bar {{/ double foo}}
 
 Output::
 
     1. foo bar bar 
     2. foo bar barx
-    3. bar bar x
+    3. foo bar barxx
     4. bar bar x
+    5. foo bar bar x
 
 The close tag can optionally contain the same key as the open tag. This key is checked to
 see if it equals the key used in the open tag. The following are valid::
@@ -303,7 +304,7 @@ Output::
     hello world
 
 
-``{{#if key}}{{/if}}``: Conditionally display a block
+``{{# if key}}{{/if}}``: Conditionally display a block
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The ``if`` block handler will render its contents if the ``key`` is present and truthy in the
@@ -335,7 +336,7 @@ Output::
     2. Visible
 
 
-``{{#not key}}{{/not}}``: Conditionally display a block (inverse ``if``)
+``{{# not key}}{{/not}}``: Conditionally display a block (inverse ``if``)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The ``not`` block handler is the opposite of the ``if`` handler - it will render its
