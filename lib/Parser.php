@@ -8,7 +8,8 @@ class Parser
     const M_STRING = 1;
     const M_TAG = 2;
 
-    public static $identifierPattern = '[a-zA-Z\d_]([a-zA-Z_\.\-\d]*[a-zA-Z\d])*';
+    public static $identifierPattern = '[a-zA-Z\d_]([a-zA-Z_\/\.\-\d]*[a-zA-Z\d])*';
+    public static $handlerSymbols = '[\$%&\*\+,\-\.:;\<=\>\?\@]';
 
     function tokenise($in)
     {
@@ -80,7 +81,7 @@ class Parser
                         (?P<type>[\#/])?
                         \s*
                         (?:
-                            (?P<handler>(=|('.static::$identifierPattern.')))
+                            (?P<handler>('.static::$handlerSymbols.'|('.static::$identifierPattern.')))
                             (\s+(?P<key>\@?'.static::$identifierPattern.'))?
                             (?P<filters>(\s*\|\s*'.static::$identifierPattern.')+)?
                             \s*
