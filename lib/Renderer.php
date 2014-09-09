@@ -30,10 +30,6 @@ class Renderer
             new Ext\Lang(isset($options['lang']) ? $options['lang'] : []), 
             new Ext\String
         ];
-
-        if (isset($options['partial']))
-            $ext[] = new Ext\Partial($options['partial']);
-
         return new static($ext);
     }
 
