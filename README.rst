@@ -49,9 +49,9 @@ to. Like those little bits of "logic" that aren't really quite logic but you sti
 anyway. Context-specific escaping filters spring instantly to mind.
 
 Tempe's core is also much simpler than Mustache - it comes with fewer features by default,
-but the primitives it does provide make it possible to provide all of the same features.
-Tempe comes with an implementation of these features you can use if you wish, though you
-do not have to.
+but the primitives it does provide make it possible to provide a feature-complete
+replacement. Tempe comes with an implementation of these features you can use if you
+wish, though you do not have to.
 
 Because of this design, Tempe can also be used to create your own templating DSL using its
 primitives - you can strip it back to almost nothing and tailor it to your needs. This
@@ -70,11 +70,6 @@ tags** and the **escape sequence**.
 All tag primitives are opened with ``{{`` and closed with ``}}``. Unlike Mustache, this
 cannot be changed.
 
-Tags contain **identifiers** which are separated by whitespace or pipe characters (``|``),
-and which must satisfy the following regex (with some minor exceptions, mentioned later)::
-
-    [a-zA-Z\d_]([a-zA-Z_\.\-\d]*[a-zA-Z\d])*
-
 Value tags look like this::
 
     {{ handler }}
@@ -90,6 +85,16 @@ Block tags look like this::
     {{# handler | filter }}{{/ handler }}
     {{# handler key | filter | filter }}{{/ handler }}
 
+Tags contain **identifiers** which are separated by whitespace and/or pipe characters
+(``|``), and which must satisfy the following regex::
+
+    [a-zA-Z\d_]([a-zA-Z_\/\.\-\d]*[a-zA-Z\d])*
+
+The exception to this is the ``handler`` portion, which can either be an identifier or
+*one and only one* of the following symbols::
+
+    $%&*+,-.:;<=>?@
+
 Whitespace inside tags between symbols is ignored. ``{{handler key|filter|filter}}`` is
 identical to ``{{  handler  key  |  filter  |  filter  }}``
 
@@ -102,6 +107,8 @@ The escape sequence simply emits a curly brace and looks like this::
 It allows you to include the tag opener (``{{``) in your output like so::
 
     {!{!
+
+You do not need to escape single curly braces.
 
 Whitespace-only tags and empty tags are allowed. This can be used for basic whitespace
 control::
@@ -231,19 +238,23 @@ But this example does::
     {"json": {!{{= key | as.js }}: "yep" }}
 
 
-Cut To The Chase. I Just Wanna Make Web Pages
+Cut To The Chase. I Just Wanna Make Templates
 ---------------------------------------------
 
-The simplest way to get started making web templates is to use the basic web language. You
-get ``if``, ``each`` and ``=`` handlers for free (along with a few others), as well as the
-String and Escaper extensions for good measure.
+The simplest way to get started making web templates is to use the basic bundled web
+language. You get ``if``, ``each`` and ``=`` handlers for free (along with a few others),
+as well as the String and Escaper extensions for good measure.
 
 Instantiating is easy:
 
 .. code-block:: php
     
     <?php
-    $renderer = \Tempe\Renderer::createBasicWeb();
+    // provides a core templating language
+    $renderer = \Tempe\Renderer::createSyntax();
+    
+    // based on createSyntax(), but includes web-context specific output escapers
+    $renderer = \Tempe\Renderer::createWebSyntax();
 
 The basic language is made up of the following handlers:
 
@@ -499,7 +510,7 @@ Web Escaping Filters
 ~~~~~~~~~~~~~~~~~~~~
 
 Provided by ``Tempe\Filter\WebEscaper`` and loaded when using
-``Tempe\Renderer:;createBasicWeb()``. Provides basic output escaping filters with a web
+``Tempe\Renderer::createWebSyntax()``. Provides basic output escaping filters with a web
 focus.
 
 Each filter method should be used to represent the context of the output and should

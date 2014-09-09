@@ -1,7 +1,7 @@
 {
     "name": "shabbyrobe/tempe",
     "keywords": ["templating"],
-    "version": "1.0.0-alpha4",
+    "version": "1.0.0-alpha5",
     "license": "MIT",
     "description": "Very simple, flexible templating language for PHP",
     "homepage": "http://k3jw.com/code/tempe/",
@@ -15,6 +15,7 @@
         "psr-4": {"Tempe\\": "lib/"}
     },
     "require-dev": {
-        "phpunit/phpunit": "4.1.*"
+        "phpunit/phpunit": "4.1.*",
+        "mikey179/vfsstream": "*"
     }
 }
