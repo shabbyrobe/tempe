@@ -16,6 +16,45 @@ class PartialTest extends \PHPUnit_Framework_TestCase
         $this->renderer->addExtension(['valueHandlers'=>['test'=>$v]]);
     }
 
+    /**
+     * @dataProvider dataTraversalFails
+     */
+    function testTraversalFails($handler, $file)
+    {
+        $tpl = "{{ $handler $file }}";
+        $this->setExpectedException("InvalidArgumentException", "Invalid file $file");
+        $out = $this->renderer->render($tpl);
+    }
+
+    function dataTraversalFails()
+    {
+        return [
+            ['tpl', 'alias/../../naughty'],
+            ['incl', 'alias/../../naughty'],
+        ];
+    }
+
+    function testNoAliasFails()
+    {
+        $tpl = "{{ tpl file }}";
+        $this->setExpectedException("InvalidArgumentException", "Missing alias in file");
+        $out = $this->renderer->render($tpl);
+    }
+
+    function testUnknownAliasFails()
+    {
+        $tpl = "{{ tpl alias/file }}";
+        $this->setExpectedException("InvalidArgumentException", "Unknown alias alias");
+        $out = $this->renderer->render($tpl);
+    }
+
+    function testUnknownFileFails()
+    {
+        $tpl = "{{ tpl parts/file }}";
+        $this->setExpectedException("InvalidArgumentException", "Could not load vfs://test/file");
+        $out = $this->renderer->render($tpl);
+    }
+
     function testTpl()
     {
         $tpl = "-{{ tpl parts/test.tpl }}-";
