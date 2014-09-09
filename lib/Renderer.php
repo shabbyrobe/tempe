@@ -24,21 +24,24 @@ class Renderer
             $this->addExtension($e);
     }
 
-    static function createBasic()
+    static function createSyntax($options=[])
     {
-        return new static([new Ext\Lang, new Ext\String]);
+        $ext = [
+            new Ext\Lang(isset($options['lang']) ? $options['lang'] : []), 
+            new Ext\String
+        ];
+
+        if (isset($options['partial']))
+            $ext[] = new Ext\Partial($options['partial']);
+
+        return new static($ext);
     }
 
-    static function createBasicWeb($options=[])
+    static function createWebSyntax($options=[])
     {
-        $default = [
-            // Default is declared in Filter\WebEscaper as UTF-8
-            'charset'=>null,
-        ];
-        $options = $options + $default;
-
-        $r = static::createBasic();
-        $r->addExtension(['filters'=>['as'=>new Filter\WebEscaper($options['charset'])]]);
+        $r = static::createSyntax($options);
+        $filterAs = new Filter\WebEscaper(isset($options['escaper']) ? $options['escaper'] : []);
+        $r->addExtension(['filters'=>['as'=>$filterAs]]);
         return $r;
     }
 
