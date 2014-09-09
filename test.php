@@ -10,6 +10,8 @@ $basePath = __DIR__;
 
 require $basePath.'/vendor/autoload.php';
 
+org\bovigo\vfs\vfsStreamWrapper::register();
+
 $options = array(
     'coverage-html'=>null,
     'filter'=>null,
