@@ -8,7 +8,7 @@ class RendererHelperTest extends \PHPUnit_Framework_TestCase
     function testLangOptionsPassedBasic()
     {
         $this->setExpectedException('InvalidArgumentException', 'Unknown options: intentionallyDodgyKey');
-        $r = Renderer::createSyntax(array('lang'=>[
+        $r = Renderer::createBasic(array('lang'=>[
             'intentionallyDodgyKey'=>true
         ]));
     }
@@ -16,7 +16,7 @@ class RendererHelperTest extends \PHPUnit_Framework_TestCase
     function testLangOptionsPassedBasicWeb()
     {
         $this->setExpectedException('InvalidArgumentException', 'Unknown options: intentionallyDodgyKey');
-        $r = Renderer::createWebSyntax(array('lang'=>[
+        $r = Renderer::createBasicWeb(array('lang'=>[
             'intentionallyDodgyKey'=>true
         ]));
     }

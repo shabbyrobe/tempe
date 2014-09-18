@@ -127,32 +127,32 @@ class ParserTest extends \PHPUnit_Framework_TestCase
 
     function testParseEscape()
     {
-        $tree = $this->parser->parse('{!');
-        $expected = [(object)['t'=>Renderer::P_ESC, 'v'=>'{!']];
+        $tree = $this->parser->parse('{;');
+        $expected = [(object)['t'=>Renderer::P_ESC, 'v'=>'{;']];
         $this->assertNodes($expected, $tree->c);
     }
 
     function testParseEscapeAfterUnescapedBraceFails()
     {
         $this->setExpectedException("Tempe\ParseException", "Tag close mismatch, open was on line 1");
-        $tree = $this->parser->parse('{{!');
+        $tree = $this->parser->parse('{{;');
     }
 
     function testParseMultipleEscape()
     {
-        $tree = $this->parser->parse('{!{!');
+        $tree = $this->parser->parse('{;{;');
         $expected = [
-            ['t'=>Renderer::P_ESC, 'v'=>'{!'],
-            ['t'=>Renderer::P_ESC, 'v'=>'{!'],
+            ['t'=>Renderer::P_ESC, 'v'=>'{;'],
+            ['t'=>Renderer::P_ESC, 'v'=>'{;'],
         ];
         $this->assertNodes($expected, $tree->c);
     }
 
     function testParseEscapeFollowedByTag()
     {
-        $tree = $this->parser->parse('{!{{=}}');
+        $tree = $this->parser->parse('{;{{=}}');
         $expected = [
-            ['t'=>Renderer::P_ESC, 'v'=>'{!'],
+            ['t'=>Renderer::P_ESC, 'v'=>'{;'],
             ['t'=>Renderer::P_VALUE, 'v'=>'{{=}}'],
         ];
         $this->assertNodes($expected, $tree->c);
@@ -334,9 +334,9 @@ class ParserTest extends \PHPUnit_Framework_TestCase
     function dataUnparse()
     {
         $tests = [
-            ["{!{!"],
-            ["foo {!{! bar"],
-            ["foo {!{{foo}} bar"],
+            ["{;{;"],
+            ["foo {;{; bar"],
+            ["foo {;{{foo}} bar"],
         ];
 
         foreach ($this->dataValidValues() as $test)

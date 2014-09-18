@@ -13,7 +13,7 @@ class Parser
 
     function tokenise($in)
     {
-        $pattern = '~( \{! | \{\{ | \}\} | \r\n | \n | \r )~x';
+        $pattern = '~( \{; | \{\{ | \}\} | \r\n | \n | \r )~x';
 
         $flags = PREG_SPLIT_DELIM_CAPTURE | PREG_SPLIT_NO_EMPTY;
         $tokens = preg_split($pattern, $in, null, $flags);
@@ -48,7 +48,7 @@ class Parser
 
             switch ($currentMode) {
             case self::M_STRING:
-                if ($current == '{!' || $current == '{{') {
+                if ($current == '{;' || $current == '{{') {
                     if ($buffer) {
                         $node->c[] = (object)['t'=>Renderer::P_STRING, 'v'=>$buffer, 'l'=>$bufferLine];
                         $bufferLine = $line;
@@ -71,7 +71,7 @@ class Parser
                 $buffer .= $current;
 
                 switch ($current) {
-                case '{!':
+                case '{;':
                 case '{{':
                     throw new ParseException("Unexpected $current at line $line");
 

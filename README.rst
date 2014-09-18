@@ -102,11 +102,11 @@ identical to ``{{  handler  key  |  filter  |  filter  }}``
 
 The escape sequence simply emits a curly brace and looks like this::
 
-    {!
+    {;
 
 It allows you to include the tag opener (``{{``) in your output like so::
 
-    {!{!
+    {;{;
 
 You do not need to escape single curly braces.
 
@@ -221,11 +221,11 @@ Escape Sequence
 
 The escape sequence simply emits a curly brace and looks like this::
 
-    {!
+    {;
 
 It allows you to include the tag opener (``{{``) in your output like so::
 
-    {!{!
+    {;{;
 
 It contains no identifiers and allows no whitespace.
 
@@ -236,7 +236,7 @@ opening. The following does not require escaping::
 
 But this example does::
 
-    {"json": {!{{= key | as.js }}: "yep" }}
+    {"json": {;{{= key | as.js }}: "yep" }}
 
 
 Cut To The Chase. I Just Wanna Make Templates
@@ -252,10 +252,10 @@ Instantiating is easy:
     
     <?php
     // provides a core templating language
-    $renderer = \Tempe\Renderer::createSyntax();
+    $renderer = \Tempe\Renderer::createBasic();
     
-    // based on createSyntax(), but includes web-context specific output escapers
-    $renderer = \Tempe\Renderer::createWebSyntax();
+    // based on createBasic(), but includes web-context specific output escapers
+    $renderer = \Tempe\Renderer::createBasicWeb();
 
 The basic language is made up of the following handlers:
 

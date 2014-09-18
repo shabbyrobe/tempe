@@ -24,7 +24,7 @@ class Renderer
             $this->addExtension($e);
     }
 
-    static function createSyntax($options=[])
+    static function createBasic($options=[])
     {
         $ext = [
             new Ext\Lang(isset($options['lang']) ? $options['lang'] : []), 
@@ -33,9 +33,9 @@ class Renderer
         return new static($ext);
     }
 
-    static function createWebSyntax($options=[])
+    static function createBasicWeb($options=[])
     {
-        $r = static::createSyntax($options);
+        $r = static::createBasic($options);
         $filterAs = new Filter\WebEscaper(isset($options['escaper']) ? $options['escaper'] : []);
         $r->addExtension(['filters'=>['as'=>$filterAs]]);
         return $r;
