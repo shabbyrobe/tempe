@@ -20,6 +20,7 @@ class String
 
             'nl2br'=>'nl2br',
             'striptags'=>'strip_tags',
+            'base64'=>'base64_encode',
         ];
     }
 }
