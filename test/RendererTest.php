@@ -202,7 +202,7 @@ class RendererTest extends \PHPUnit_Framework_TestCase
         $tree = $this->parser->parse($tpl);
         $renderer = new Renderer;
 
-        $renderer->blockHandlers['h'] = function($scope, $key, $contents) use (&$result) {
+        $renderer->blockHandlers['h'] = function($scope, $key, $renderer, $contents) use (&$result) {
             $result = $contents;
         };
         $renderer->renderTree($tree);
@@ -218,7 +218,7 @@ class RendererTest extends \PHPUnit_Framework_TestCase
         $tpl = '{{#h}}foo {{v}} bar{{/h}}';
         $renderer = new Renderer;
         $renderer->valueHandlers['v'] = function($scope, $key) { return "hello"; };
-        $renderer->blockHandlers['h'] = function($scope, $key, $contents) use ($renderer) {
+        $renderer->blockHandlers['h'] = function($scope, $key, $renderer, $contents) {
             return $renderer->renderTree($contents);
         };
         $this->assertEquals("foo hello bar", $renderer->render($tpl));
@@ -232,7 +232,7 @@ class RendererTest extends \PHPUnit_Framework_TestCase
         $tpl = '{{#h}}foo {{#h}} bar {{v}} baz {{/h}} qux{{/h}}';
         $renderer = new Renderer;
         $renderer->valueHandlers['v'] = function($scope, $key) { return "hello"; };
-        $renderer->blockHandlers['h'] = function($scope, $key, $contents) use ($renderer) {
+        $renderer->blockHandlers['h'] = function($scope, $key, $renderer, $contents) {
             return "<".$renderer->renderTree($contents).">";
         };
         $this->assertEquals("<foo < bar hello baz > qux>", $renderer->render($tpl));
@@ -246,7 +246,7 @@ class RendererTest extends \PHPUnit_Framework_TestCase
         $tpl = '{{#h}}1 {{#h}} 2 {{v}} 3 {{/h}} 4{{/h}}';
         $renderer = new Renderer;
         $renderer->valueHandlers['v'] = function($scope, $key) { return "9"; };
-        $renderer->blockHandlers['h'] = function($scope, $key, $contents) use ($renderer) {
+        $renderer->blockHandlers['h'] = function($scope, $key, $renderer, $contents) {
             return "<"
                 .$renderer->renderTree($contents)
                 ."|"

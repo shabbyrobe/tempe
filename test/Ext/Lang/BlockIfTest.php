@@ -64,27 +64,27 @@ class BlockIfTest extends \PHPUnit_Framework_TestCase
 
     function runShownBlockTest($handler, $vars, $key, $ext=null)
     {
-        $contents = new \stdClass;
+        $node = new \stdClass;
         $return = 'yes';
         $this->renderer->addExtension($ext ?: new Ext\Lang);
         $this->renderer->expects($this->once())
             ->method('renderTree')
-            ->with($contents)
+            ->with($node)
             ->will($this->returnValue($return))
         ;
         $this->assertEquals(
             $return,
-            $this->renderer->blockHandlers[$handler]($vars, $key, $contents, $this->renderer)
+            $this->renderer->blockHandlers[$handler]($vars, $key, $this->renderer, $node)
         );
     }
 
     function runHiddenBlockTest($handler, $vars, $key, $ext=null)
     {
-        $contents = new \stdClass;
+        $node = new \stdClass;
         $this->renderer->addExtension($ext ?: new Ext\Lang);
         $this->renderer->expects($this->never())->method('renderTree');
         $this->assertEmpty(
-            $this->renderer->blockHandlers[$handler]($vars, $key, $contents, $this->renderer)
+            $this->renderer->blockHandlers[$handler]($vars, $key, $this->renderer, $node)
         );
     }
 

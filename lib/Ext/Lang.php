@@ -27,23 +27,23 @@ class Lang
         
         if ($blocks['if']) {
             $id = $blocks['if'] === true ? 'if' : $blocks['if'];
-            $this->blockHandlers[$id] = function(&$scope, $key, $contentTree, $renderer) {
+            $this->blockHandlers[$id] = function(&$scope, $key, $renderer, $node) {
                 if (isset($scope[$key]) && $scope[$key])
-                    return $renderer->renderTree($contentTree, $scope);
+                    return $renderer->renderTree($node, $scope);
             };
         }
 
         if ($blocks['not']) {
             $id = $blocks['not'] === true ? 'not' : $blocks['not'];
-            $this->blockHandlers[$id] = function(&$scope, $key, $contentTree, $renderer) {
+            $this->blockHandlers[$id] = function(&$scope, $key, $renderer, $node) {
                 if (!isset($scope[$key]) || !$scope[$key])
-                    return $renderer->renderTree($contentTree, $scope);
+                    return $renderer->renderTree($node, $scope);
             };
         }
 
         if ($blocks['each']) {
             $id = $blocks['each'] === true ? 'each' : $blocks['each'];
-            $this->blockHandlers[$id] = function(&$scope, $key, $contentTree, $renderer) {
+            $this->blockHandlers[$id] = function(&$scope, $key, $renderer, $node) {
                 if (!isset($scope[$key])) {
                     if (!$this->allowUnsetKeys)
                         throw new \Tempe\RenderException("Unknown variable $key");
@@ -56,7 +56,7 @@ class Lang
                 foreach ($scope[$key] as $key=>$item) {
                     $kv = ['@key'=>$key, '@value'=>$item, '@first'=>$idx == 0, '@idx'=>$idx, '@num'=>$idx+1];
                     $curScope = is_array($item) ? array_merge($scope, $item, $kv) : $kv;
-                    $out .= $renderer->renderTree($contentTree, $curScope);
+                    $out .= $renderer->renderTree($node, $curScope);
                     $idx++;
                 }
                 return $out;
@@ -65,8 +65,8 @@ class Lang
 
         if ($blocks['block']) {
             $id = $blocks['block'] === true ? 'block' : $blocks['block'];
-            $this->blockHandlers[$id] = function(&$scope, $key, $contentTree, $renderer) {
-                $out = $renderer->renderTree($contentTree, $scope);
+            $this->blockHandlers[$id] = function(&$scope, $key, $renderer, $node) {
+                $out = $renderer->renderTree($node, $scope);
                 if ($key)
                     $scope[$key] = $out;
                 else
@@ -76,7 +76,7 @@ class Lang
 
         if ($blocks['push']) {
             $id = $blocks['push'] === true ? 'push' : $blocks['push'];
-            $this->blockHandlers[$id] = function(&$scope, $key, $contentTree, $renderer) {
+            $this->blockHandlers[$id] = function(&$scope, $key, $renderer, $node) {
                 if (!isset($scope[$key])) {
                     if (!$this->allowUnsetKeys)
                         throw new \Tempe\RenderException("Unknown variable $key");
@@ -87,7 +87,7 @@ class Lang
                 $newScope = $scope;
                 $item = $scope[$key];
                 $newScope = $item + $newScope;
-                return $renderer->renderTree($contentTree, $newScope);
+                return $renderer->renderTree($node, $newScope);
             };
         }
 

@@ -87,14 +87,14 @@ class Renderer
                         $this->raise("Unknown value handler {$node->h}", $node);
 
                     $h = $this->valueHandlers[$node->h];
-                    $val = $h($vars, $node->k, $this);
+                    $val = $h($vars, $node->k, $this, $node);
                 }
                 else {
                     if (!isset($this->blockHandlers[$node->h]))
                         $this->raise("Unknown block handler {$node->h}", $node);
 
                     $h = $this->blockHandlers[$node->h];
-                    $val = $h($vars, $node->k, $node, $this);
+                    $val = $h($vars, $node->k, $this, $node);
                 }
 
                 if ($node->f) {
