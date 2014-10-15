@@ -282,46 +282,6 @@ class ParserTest extends \PHPUnit_Framework_TestCase
     }
 
     /**
-     * @dataProvider dataParseHandlerSymbol
-     */
-    function testParseHandlerSymbol($tpl, $symbol)
-    {
-        $tree = $this->parser->parse($tpl);
-
-        $this->assertCount(1, $tree->c);
-        $node = $tree->c[0];
-        $this->assertEquals($symbol, $node->h);
-    }
-
-    function dataParseHandlerSymbol()
-    {
-        $templates = [
-            "{{<sym>}}",
-            "{{ <sym> }}",
-            "{{ <sym>}}",
-            "{{<sym> }}",
-            "{{<sym>|filter}}",
-            "{{#<sym>}}{{/<sym>}}",
-            "{{#<sym> key}}{{/<sym>}}",
-            "{{#<sym> key|filter}}{{/<sym>}}",
-            "{{#<sym> key}}{{/<sym> key}}",
-            "{{# <sym>}}{{/ <sym>}}",
-            "{{# <sym> key}}{{/ <sym> key}}",
-        ];
-
-        $symbols = str_split(str_replace('\\', '', trim(\Tempe\Parser::$handlerSymbols, '[]')));
-
-        $tests = [];
-        foreach ($templates as $tpl) {
-            foreach ($symbols as $sym) {
-                $tests[] = [strtr($tpl, ['<sym>'=>$sym]), $sym];
-            }
-        }
-
-        return $tests;
-    }
-
-    /**
      * @dataProvider dataUnparse
      */
     function testUnparse($tpl)
