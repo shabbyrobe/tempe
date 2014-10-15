@@ -11,7 +11,7 @@ class Renderer
 
     public $blockHandlers = [];
     public $valueHandlers = [];
-    public $filters = [];
+    public $pipeHandlers = [];
 
     public $extensions;
 
@@ -37,7 +37,7 @@ class Renderer
     {
         $r = static::createBasic($options);
         $filterAs = new Filter\WebEscaper(isset($options['escaper']) ? $options['escaper'] : []);
-        $r->addExtension(['filters'=>['as'=>$filterAs]]);
+        $r->addExtension(['pipeHandlers'=>['as'=>$filterAs]]);
         return $r;
     }
 
@@ -54,9 +54,9 @@ class Renderer
                 $this->valueHandlers[$k] = $h;
         }
 
-        if (isset($e->filters)) {
-            foreach ($e->filters as $k=>$h)
-                $this->filters[$k] = $h;
+        if (isset($e->pipeHandlers)) {
+            foreach ($e->pipeHandlers as $k=>$h)
+                $this->pipeHandlers[$k] = $h;
         }
     }
 
@@ -79,37 +79,38 @@ class Renderer
             elseif ($node->t == self::P_VALUE || $node->t == self::P_BLOCK) {
                 $val = null;
 
-                if (!$node->h)
+                if (!$node->hc)
                     continue;
 
-                if ($node->t == self::P_VALUE) {
-                    if (!isset($this->valueHandlers[$node->h]))
-                        $this->raise("Unknown value handler {$node->h}", $node);
+                $ph = $node->hc[0];
 
-                    $h = $this->valueHandlers[$node->h];
-                    $val = $h($vars, $node->k, $this, $node);
+                if ($node->t == self::P_VALUE) {
+                    if (!isset($this->valueHandlers[$ph->h]))
+                        $this->raise("Unknown value handler {$ph->h}", $node);
+
+                    $h = $this->valueHandlers[$ph->h];
+                    $val = $h($vars, $ph->k, $this, $node);
                 }
                 else {
-                    if (!isset($this->blockHandlers[$node->h]))
-                        $this->raise("Unknown block handler {$node->h}", $node);
+                    if (!isset($this->blockHandlers[$ph->h]))
+                        $this->raise("Unknown block handler {$ph->h}", $node);
 
-                    $h = $this->blockHandlers[$node->h];
-                    $val = $h($vars, $node->k, $this, $node);
+                    $h = $this->blockHandlers[$ph->h];
+                    $val = $h($vars, $ph->k, $this, $node);
                 }
 
-                if ($node->f) {
-                    foreach ($node->f as $f) {
-                        $filter = $f[0];
-                        $method = isset($f[1]) ? $f[1] : null;
-                        
-                        if (!isset($this->filters[$filter]))
-                            $this->raise("Unknown filter {$filter}", $node);
+                $i = 1;
+                while (isset($node->hc[$i])) {
+                    $ch = $node->hc[$i];
+                    if (!isset($this->pipeHandlers[$ch->h]))
+                        $this->raise("Unknown pipe handler {$ch->h}", $node);
 
-                        if ($method)
-                            $val = $this->filters[$filter]->$method($val);
-                        else
-                            $val = $this->filters[$filter]($val);
-                    }
+                    $h = $this->pipeHandlers[$ch->h];
+                    if ($ch->k)
+                        $val = $h->{$ch->k}($val, $vars, $this, $node);
+                    else
+                        $val = $h($val, $vars, $this, $node);
+                    $i++;
                 }
 
                 $out .= $val;

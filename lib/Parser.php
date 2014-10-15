@@ -99,7 +99,7 @@ class Parser
 
                     if ($tagType == '#') {
                         $node = $node->c[] = (object)[
-                            't'=>Renderer::P_BLOCK, 'h'=>$chain,
+                            't'=>Renderer::P_BLOCK, 'hc'=>$chain,
                             'c'=>[], 'l'=>$bufferLine, 'vo'=>$tagString,
                         ];
                         $stack[++$stackIdx] = $node;
@@ -110,8 +110,8 @@ class Parser
 
                         $node->vc = $tagString;
 
-                        if ($node->h) {
-                            $open = $node->h[0];
+                        if ($node->hc) {
+                            $open = $node->hc[0];
                             $close = isset($chain[0]) ? $chain[0] : null;
                             if (isset($chain[1]))
                                 throw new ParseException("Only the first handler is valid in block close on line {$line}");
@@ -137,7 +137,7 @@ class Parser
                     }
                     else {
                         $node->c[] = (object)[
-                            't'=>Renderer::P_VALUE, 'h'=>$chain, 
+                            't'=>Renderer::P_VALUE, 'hc'=>$chain, 
                             'l'=>$bufferLine, 'v'=>$tagString,
                         ];
                     }
@@ -158,7 +158,7 @@ class Parser
         if ($currentMode == self::M_TAG)
             throw new ParseException("Tag close mismatch, open was on line $bufferLine");
         if ($node != $tree)
-            throw new ParseException("Unclosed block ".(isset($node->h[0]) ? "'{$node->h[0]->h}({$node->k[0]->k})'" : "(unnamed)" )." on line {$node->l}");
+            throw new ParseException("Unclosed block ".(isset($node->hc[0]) ? "'{$node->hc[0]->h}({$node->hc[0]->k})'" : "(unnamed)" )." on line {$node->l}");
 
         if ($buffer) {
             $node->c[] = (object)[

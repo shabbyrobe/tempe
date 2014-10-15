@@ -69,7 +69,9 @@ class RendererTest extends \PHPUnit_Framework_TestCase
         $renderer->valueHandlers['h'] = function($scope, $key) {
             return 'bingo '.$key;
         };
-        $renderer->filters['f1'] = 'strtoupper';
+        $renderer->pipeHandlers['f1'] = function($value) {
+            return strtoupper($value);
+        };
         $this->assertEquals('BINGO KEY', $renderer->render($tpl));
     }
 
@@ -80,8 +82,12 @@ class RendererTest extends \PHPUnit_Framework_TestCase
         $renderer->valueHandlers['h'] = function($scope, $key) {
             return 'bingo '.$key;
         };
-        $renderer->filters['f1'] = 'strtoupper';
-        $renderer->filters['f2'] = 'lcfirst';
+        $renderer->pipeHandlers['f1'] = function($value) {
+            return strtoupper($value);
+        };
+        $renderer->pipeHandlers['f2'] = function($value) {
+            return lcfirst($value);
+        };
         $this->assertEquals('bINGO KEY', $renderer->render($tpl));
     }
 
@@ -92,29 +98,19 @@ class RendererTest extends \PHPUnit_Framework_TestCase
         $renderer->valueHandlers['h'] = function($scope, $key) {};
 
         $called = false;
-        $renderer->filters['f'] = function($value) use (&$called) { $called = true; };
+        $renderer->pipeHandlers['f'] = function($value) use (&$called) { $called = true; };
         $renderer->render($tpl);
         $this->assertTrue($called);
     }
 
     function testRenderValueHandlerClassFilter()
     {
-        $tpl = '{{h key|f.x}}';
+        $tpl = '{{h key|f x}}';
         $renderer = new Renderer;
         $renderer->valueHandlers['h'] = function($scope, $key) { return "value"; };
         
-        $renderer->filters['f'] = new TestFilter;
+        $renderer->pipeHandlers['f'] = new TestFilter;
         $this->assertEquals('x(value)', $renderer->render($tpl));
-    }
-
-    function testRenderValueHandlerClassFilterDoesntNest()
-    {
-        $tpl = '{{h key|f.x.x}}';
-        $renderer = new Renderer;
-        $renderer->valueHandlers['h'] = function($scope, $key) { return "value"; };
-
-        $renderer->filters['f'] = new TestFilter;
-        $this->assertEquals('x.x(value)', $renderer->render($tpl));
     }
 
     function testRenderBlockHandlerNoKeyNoFilter()
@@ -148,7 +144,9 @@ class RendererTest extends \PHPUnit_Framework_TestCase
         $renderer->blockHandlers['h'] = function($scope, $key) {
             return 'bingo '.$key;
         };
-        $renderer->filters['f1'] = 'strtoupper';
+        $renderer->pipeHandlers['f1'] = function($value) {
+            return strtoupper($value);
+        };
         $this->assertEquals('BINGO KEY', $renderer->render($tpl));
     }
 
@@ -159,8 +157,12 @@ class RendererTest extends \PHPUnit_Framework_TestCase
         $renderer->blockHandlers['h'] = function($scope, $key) {
             return 'bingo '.$key;
         };
-        $renderer->filters['f1'] = 'strtoupper';
-        $renderer->filters['f2'] = 'lcfirst';
+        $renderer->pipeHandlers['f1'] = function($value) {
+            return strtoupper($value);
+        };
+        $renderer->pipeHandlers['f2'] = function($value) {
+            return lcfirst($value);
+        };
         $this->assertEquals('bINGO KEY', $renderer->render($tpl));
     }
 
@@ -171,29 +173,19 @@ class RendererTest extends \PHPUnit_Framework_TestCase
         $renderer->blockHandlers['h'] = function($scope, $key) {};
 
         $called = false;
-        $renderer->filters['f'] = function($value) use (&$called) { $called = true; };
+        $renderer->pipeHandlers['f'] = function($value) use (&$called) { $called = true; };
         $renderer->render($tpl);
         $this->assertTrue($called);
     }
 
     function testRenderBlockHandlerClassFilter()
     {
-        $tpl = '{{#h key|f.x}}{{/h}}';
+        $tpl = '{{#h key|f x}}{{/h}}';
         $renderer = new Renderer;
         $renderer->blockHandlers['h'] = function($scope, $key) { return "value"; };
         
-        $renderer->filters['f'] = new TestFilter;
+        $renderer->pipeHandlers['f'] = new TestFilter;
         $this->assertEquals('x(value)', $renderer->render($tpl));
-    }
-
-    function testRenderBlockHandlerClassFilterDoesntNest()
-    {
-        $tpl = '{{#h key|f.x.x}}{{/h}}';
-        $renderer = new Renderer;
-        $renderer->blockHandlers['h'] = function($scope, $key) { return "value"; };
-
-        $renderer->filters['f'] = new TestFilter;
-        $this->assertEquals('x.x(value)', $renderer->render($tpl));
     }
 
     function testRenderBlockCapturesContents()
@@ -327,6 +319,6 @@ class TestFilter
 {
     function __call($name, $args)
     {
-        return "$name(".implode(', ', $args).")";
+        return "$name({$args[0]})";
     }
 }
