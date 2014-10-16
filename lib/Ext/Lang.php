@@ -12,7 +12,7 @@ class Lang
             unset($options['allowUnsetKeys']);
         }
 
-        $blocks = ['if'=>true, 'not'=>true, 'each'=>true, 'block'=>true, 'push'=>true];
+        $blocks = ['if'=>true, 'not'=>true, 'each'=>true, 'grab'=>true, 'push'=>true];
         if (isset($options['blocks'])) {
             if ($options['blocks']) {
                 $blocks = $options['blocks'] + $blocks;
@@ -63,8 +63,8 @@ class Lang
             };
         }
 
-        if ($blocks['block']) {
-            $id = $blocks['block'] === true ? 'block' : $blocks['block'];
+        if ($blocks['grab']) {
+            $id = $blocks['grab'] === true ? 'grab' : $blocks['grab'];
             $this->blockHandlers[$id] = function(&$scope, $key, $renderer, $node) {
                 $out = $renderer->renderTree($node, $scope);
                 if ($key)
@@ -92,7 +92,7 @@ class Lang
         }
 
         $this->valueHandlers = [
-            '='=>function(&$scope, $key) {
+            'v'=>function(&$scope, $key) {
                 if (isset($scope[$key]))
                     return $scope[$key];
                 elseif (!$this->allowUnsetKeys)
