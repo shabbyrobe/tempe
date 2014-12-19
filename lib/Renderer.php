@@ -72,6 +72,7 @@ class Renderer
     public function renderTree($tree, &$vars=[])
     {
         $out = '';
+
         foreach ($tree->c as $node) {
             if ($node->t == self::P_STRING) {
                 $out .= $node->v;
