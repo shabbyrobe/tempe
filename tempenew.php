@@ -1,112 +1,151 @@
 <?php
 namespace {
+
 Tempe\create_classes();
 
 $tpl = <<<'EOH'
-{{# if: var foo | is hello | show }}
-Should print hello
-{{ var foo }}
+---
+Each of these should print two '{' characters:
+{;{;
+{;{
+---
+Should print hello:
+{{# if: var foo | is hello | show | trim }}
 {{ var foo | as html }}
 {{/ if }}
-
-{{# if: var foo | not hello | show }}
-{{# alsoif: var ding | is whatsit }}
+---
+Should not print anything:
+{{# if: var foo | not hello | show | trim }}
 xxx
-{{/ alsoif }}
 {{/ if }}
-
+---
+Should print yep yep yep:
+{{# show | trim }}
 {{# set foo }}yep yep yep{{/}}
 {{ var foo }}
-
+{{/}}
+---
+Should print quack quack quack:
+{{# show | trim }}
 {{# set quack }}quack quack quack{{/}}
 {{ var quack | set foo }}
 {{ var foo }}
-
-{{# for: each var }}
-{{ var _item_ }} {{ var _key_ }}
-{{ var _idx_ }}
+{{/}}
+---
+Looping:
+{{# block: show | trim }}
+{{# for: var var | each }}{{ var _idx_ }}. {{ var _key_ }}: {{ var _value_ }}
 {{/ for }}
-
-{{ var array | push kid1 | push kid2 | var thing }}
-
---
-{{# var array | push kid1 | push kid2 }}
-Should print yep: {{ var thing }}
-{{/}}
---
-
-{{# push array }}
-{{ var kid3 }}
-{{/}}
-
-{{# show | as html }}ding dong{{/}}
-
-{{# var foo | hide }}
+{{/ block }}
+---
+Should print ass:
+{{# push array }}{{ var kid3 }}{{/}}
+---
+Should print 'ding &amp; dong':
+{{# show | as html }}ding & dong{{/}}
+---
+Should print nothing:
 {{# yep: var foo | is hello | hide }}
-
+Should not show
 {{/ yep }}
-{{/}}
+---
+Should print nothing:
+{{# var foo | hide }}{{# yep: var foo | is hello }}
+Should not show
+{{/ yep }}{{/}}
 EOH;
 
-$vars = ['foo'=>'hello', 'array'=>['kid1'=>['kid2'=>['thing'=>'yep']], 'kid3'=>'ass']];
+$vars = ['var'=>['a'=>1, 'b'=>2, 'c'=>3], 'foo'=>'hello', 'array'=>['kid1'=>['kid2'=>['thing'=>'yep']], 'kid3'=>'ass']];
 
 $p = new Tempe\Parser;
 $tree = $p->parse($tpl);
 Tempe\Helper::dumpNode($tree);
 
 $h = [
-    'trim'=>function($in) {
-        return trim($in);
+    'trim'=>function($in, $params) {
+        if ($params->key)
+            return trim($in, $params->key);
+        else
+            return trim($in);
     },
+
     'var'=>function($in, $params) {
         if (isset($in[$params->key]))
             return $in[$params->key];
         if (isset($params->scope[$params->key]))
             return $params->scope[$params->key];
     },
+
+    'dump'=>function($in, $params) {
+        if (isset($params->scope[$params->key])) {
+            ob_start();
+            var_dump($params->scope[$params->key]);
+            return ob_get_clean();
+        }
+    },
+
     'is'=>function($in, $params) {
-        if ($in == $params->key)
-            return $in;
-    },
-    'not'=>function($in, $params) {
         if ($in != $params->key)
+            $params->stop = true;
+        else
             return $in;
     },
+
+    'not'=>function($in, $params) {
+        if ($in == $params->key)
+            $params->stop = true;
+        else
+            return $in;
+    },
+
     'set'=>function($in, $params) {
         if ($params->node->t == \Tempe\Renderer::P_BLOCK)
             $params->scope[$params->key] = $params->renderer->renderTree($params->node);
         else
             $params->scope[$params->key] = $in;
     },
+
     'each'=>function($in, $params) {
         if ($params->node->t != \Tempe\Renderer::P_BLOCK)
             throw new \Tempe\RenderException();
-    },
-    'push'=>function($in, $params) {
-        $scope = null;
-        if ($in)
-            $scope = &$in;
+
+        if (is_array($in))
+            $iter = $in;
         else
-            $scope = &$params->scope;
+            $iter = $params->scope[$params->key];
 
-        if (!isset($scope[$params->key]))
-            $scope[$params->key] = [];
-
-        $pushed = $scope[$params->key];
-        return $pushed;
+        $out = '';
+        $idx = 0;
+        foreach ($iter as $key=>$item) {
+            $kv = [
+                '_key_'=>$key, '_value_'=>$item,
+                '_first_'=>$idx == 0, '_idx_'=>$idx, '_num_'=>$idx+1
+            ];
+            $curScope = is_array($item) ? array_merge($params->scope, $item, $kv) : $kv;
+            $out .= $params->renderer->renderTree($params->node, $curScope);
+            ++$idx;
+        }
+        return $out;
     },
+
+    'push'=>function($in, $params) {
+        if ($params->chainPos != 0 || isset($params->node->h[1]))
+            throw new \Tempe\RenderException("Push must be the only handler on line {$params->node->l}");
+
+        $scope = &$params->scope[$params->key];
+        return $params->renderer->renderTree($params->node, $scope);
+    },
+
     'show'=>function($in, $params) {
         if ($params->node->t != \Tempe\Renderer::P_BLOCK)
             throw new \Tempe\RenderException();
-        if ($in) {
-            return $params->renderer->renderTree($params->node, $params->scope);
-        }
+        return $params->renderer->renderTree($params->node, $params->scope);
     },
+
     'hide'=>function($in, $params) {
         if ($params->node->t != \Tempe\Renderer::P_BLOCK)
             throw new \Tempe\RenderException();
-        if (!$in)
-            return $renderer->renderTree($params->node, $params->scope);
+        return $params->renderer->renderTree($params->node, $params->scope);
     },
 
     'as'=>function($in, $params) {
@@ -178,14 +217,18 @@ class Renderer
 
                     $param = (object) [
                         'in'=>$val,
-                        'scope'=>$vars,
+                        'scope'=>&$vars,
                         'chainPos'=>$idx,
+                        'stop'=>false,
                         'key'=>$key,
                         'node'=>$node,
                         'renderer'=>$this
                     ];
                     $val = $this->handlers[$handlerId]($val, $param);
                     ++$idx;
+
+                    if ($param->stop)
+                        break;
                 }
                 $out .= $val;
             }
@@ -532,7 +575,15 @@ class Helper
 }
 
 class RenderException extends \RuntimeException
-{}
+{
+    function __construct($message, $line=null)
+    {
+        if ($line)
+            $message .= " at line {$line}";
+
+        parent::__construct(trim($message));
+    }
+}
 
 class ParseException extends \RuntimeException
 {
