@@ -1,9 +1,161 @@
 <?php
 namespace {
 
-Tempe\create_classes();
+$t = 0;
 
-$tpl = <<<'EOH'
+Tempe\create_classes();
+Tempe\throw_on_error();
+
+$h = [
+    'trim'=>function($in, $params) {
+        if ($params->argc > 1)
+            throw new \Tempe\RenderException("Too many arguments to 'trim'", $params->node->l);
+
+        $key = $params->argc == 1 ? $params->args[0] : null;
+
+        if ($key)
+            return trim($in, $params->scope[$key]);
+        else
+            return trim($in);
+    },
+
+    'var'=>function($in, $params) {
+        if ($params->argc != 1)
+            throw new \Tempe\RenderException("'var' expects 1 argument", $params->node->l);
+
+        $key = $params->args[0];
+        if ($in && isset($in[$key]))
+            return $in[$key];
+        if (isset($params->scope[$key]))
+            return $params->scope[$key];
+    },
+
+    'dump'=>function($in, $params) {
+        if ($params->argc != 1)
+            throw new \Tempe\RenderException("'var' expects 1 argument", $params->node->l);
+
+        $key = $params->argc == 1 ? $params->args[0] : null;
+
+        if (isset($params->scope[$key])) {
+            ob_start();
+            var_dump($params->scope[$key]);
+            return ob_get_clean();
+        }
+    },
+
+    'is'=>function($in, $params) {
+        if ($params->argc != 1)
+            throw new \Tempe\RenderException("'is' expects 1 argument", $params->node->l);
+
+        if ($in != $params->args[0])
+            $params->stop = true;
+        else
+            return $in;
+    },
+
+    'not'=>function($in, $params) {
+        if ($params->argc != 1)
+            throw new \Tempe\RenderException("'not' expects 1 argument", $params->node->l);
+
+        if ($in == $params->args[0])
+            $params->stop = true;
+        else
+            return $in;
+    },
+
+    'set'=>function($in, $params) {
+        if ($params->argc != 1)
+            throw new \Tempe\RenderException("'set' expects 1 argument", $params->node->l);
+
+        $key = $params->args[0];
+        if ($params->node->t == \Tempe\Renderer::P_BLOCK)
+            $params->scope[$key] = $params->renderer->renderTree($params->node);
+        else
+            $params->scope[$key] = $in;
+    },
+
+    'each'=>function($in, $params) {
+        if ($params->node->t != \Tempe\Renderer::P_BLOCK)
+            throw new \Tempe\RenderException("Node type must be a block on line {$params->node->l}");
+
+        if ($params->argc > 1)
+            throw new \Tempe\RenderException("Too many arguments to 'each'", $params->node->l);
+
+        $key = $params->argc == 1 ? $params->args[0] : null;
+        if ($in)
+            $iter = $in;
+        elseif ($key)
+            $iter = $params->scope[$key];
+        else
+            return;
+
+        $out = '';
+        $idx = 0;
+
+        // add or remove ampersand to switch 'each' hoisting
+        $scope = &$params->scope;
+
+        foreach ($iter as $scope['_key_']=>$scope['_value_']) {
+            $scope['_idx_'] = $idx;
+            $scope['_num_'] = $idx + 1;
+            $scope['_first_'] = $idx == 0;
+            if (!is_scalar($scope['_value_'])) {
+                foreach ((array) $scope['_value_'] as $k=>$v)
+                    $scope[$k] = $v;
+            }
+
+            $out .= $params->renderer->renderTree($params->node, $scope);
+            ++$idx;
+        }
+        return $out;
+    },
+
+    'push'=>function($in, $params) {
+        if ($params->chainPos != 0 || isset($params->node->h[1]))
+            throw new \Tempe\RenderException("Push must be the only handler on line {$params->node->l}");
+
+        if ($params->argc != 1)
+            throw new \Tempe\RenderException("'push' expects 1 argument", $params->node->l);
+
+        $scope = &$params->scope[$params->args[0]];
+        return $params->renderer->renderTree($params->node, $scope);
+    },
+
+    'show'=>function($in, $params) {
+        if ($params->argc > 0)
+            throw new \Tempe\RenderException("Too many arguments to 'show'", $params->node->l);
+        if ($params->node->t != \Tempe\Renderer::P_BLOCK)
+            throw new \Tempe\RenderException();
+        return $params->renderer->renderTree($params->node, $params->scope);
+    },
+
+    'hide'=>function($in, $params) {
+        if ($params->argc > 0)
+            throw new \Tempe\RenderException("Too many arguments to 'hide'", $params->node->l);
+        if ($params->node->t != \Tempe\Renderer::P_BLOCK)
+            throw new \Tempe\RenderException();
+        return $params->renderer->renderTree($params->node, $params->scope);
+    },
+
+    'as'=>function($in, $params) {
+        if ($params->argc != 1)
+            throw new \Tempe\RenderException("'as' expects 1 argument", $params->node->l);
+
+        $e = new \Tempe\Filter\WebEscaper;
+        return $e->{$params->args[0]}($in);
+    },
+
+    'test'=>function($in, $params) {
+        $out = '';
+        foreach ($params->args as $idx=>$arg) {
+            if ($idx) $out .= ' ';
+            $out .= $arg;
+        }
+        return $out;
+    },
+];
+
+$tpl = <<<'EOT'
 ---
 Each of these should print two '{' characters:
 {;{;
@@ -15,9 +167,9 @@ Should print hello:
 {{/ if }}
 ---
 Should not print anything:
-{{# if: var foo | not hello | show | trim }}
+{{# ifff: var foo | not hello | show | trim }}
 xxx
-{{/ if }}
+{{/ ifff }}
 ---
 Should print yep yep yep:
 {{# show | trim }}
@@ -53,110 +205,77 @@ Should print nothing:
 {{# var foo | hide }}{{# yep: var foo | is hello }}
 Should not show
 {{/ yep }}{{/}}
+---
+Multi arg test:
+{{ test a b c d }}
+
+{{ yep : dump ass  }}
+EOT;
+
+/*
+{{ var ass }}
+{{# var pants | each }}
+{{ var _idx_ }} ({{ var _num_ }}): {{ var _key_ }}={{ var _value_ }}
+{{/ }}
+
+{{ var ass }}
+{{# each pants }}
+{{ var _idx_ }} ({{ var _num_ }}): {{ var _key_ }}={{ var _value_ }}
+{{/ }}
+
+{{ var _key_ }}
+EOT;
+
+/*
+$tpl = <<<'EOH'
+{{ var ass }}
+{{# var pants | each }}
+{{ var _idx_ }} ({{ var _num_ }}): {{ var _key_ }}={{ var _value_ }}
+{{/ }}
+
+{{ var ass }}
+{{# each pants }}
+{{ var _idx_ }} ({{ var _num_ }}): {{ var _key_ }}={{ var _value_ }}
+{{/ }}
+
+{{ var _key_ }}
+{{ var ass }}
+{{ var ass }}
 EOH;
-
-$vars = ['var'=>['a'=>1, 'b'=>2, 'c'=>3], 'foo'=>'hello', 'array'=>['kid1'=>['kid2'=>['thing'=>'yep']], 'kid3'=>'ass']];
-
-$p = new Tempe\Parser;
-$tree = $p->parse($tpl);
-Tempe\Helper::dumpNode($tree);
-
-$h = [
-    'trim'=>function($in, $params) {
-        if ($params->key)
-            return trim($in, $params->key);
-        else
-            return trim($in);
-    },
-
-    'var'=>function($in, $params) {
-        if (isset($in[$params->key]))
-            return $in[$params->key];
-        if (isset($params->scope[$params->key]))
-            return $params->scope[$params->key];
-    },
-
-    'dump'=>function($in, $params) {
-        if (isset($params->scope[$params->key])) {
-            ob_start();
-            var_dump($params->scope[$params->key]);
-            return ob_get_clean();
-        }
-    },
-
-    'is'=>function($in, $params) {
-        if ($in != $params->key)
-            $params->stop = true;
-        else
-            return $in;
-    },
-
-    'not'=>function($in, $params) {
-        if ($in == $params->key)
-            $params->stop = true;
-        else
-            return $in;
-    },
-
-    'set'=>function($in, $params) {
-        if ($params->node->t == \Tempe\Renderer::P_BLOCK)
-            $params->scope[$params->key] = $params->renderer->renderTree($params->node);
-        else
-            $params->scope[$params->key] = $in;
-    },
-
-    'each'=>function($in, $params) {
-        if ($params->node->t != \Tempe\Renderer::P_BLOCK)
-            throw new \Tempe\RenderException();
-
-        if (is_array($in))
-            $iter = $in;
-        else
-            $iter = $params->scope[$params->key];
-
-        $out = '';
-        $idx = 0;
-        foreach ($iter as $key=>$item) {
-            $kv = [
-                '_key_'=>$key, '_value_'=>$item,
-                '_first_'=>$idx == 0, '_idx_'=>$idx, '_num_'=>$idx+1
-            ];
-            $curScope = is_array($item) ? array_merge($params->scope, $item, $kv) : $kv;
-            $out .= $params->renderer->renderTree($params->node, $curScope);
-            ++$idx;
-        }
-        return $out;
-    },
-
-    'push'=>function($in, $params) {
-        if ($params->chainPos != 0 || isset($params->node->h[1]))
-            throw new \Tempe\RenderException("Push must be the only handler on line {$params->node->l}");
-
-        $scope = &$params->scope[$params->key];
-        return $params->renderer->renderTree($params->node, $scope);
-    },
-
-    'show'=>function($in, $params) {
-        if ($params->node->t != \Tempe\Renderer::P_BLOCK)
-            throw new \Tempe\RenderException();
-        return $params->renderer->renderTree($params->node, $params->scope);
-    },
-
-    'hide'=>function($in, $params) {
-        if ($params->node->t != \Tempe\Renderer::P_BLOCK)
-            throw new \Tempe\RenderException();
-        return $params->renderer->renderTree($params->node, $params->scope);
-    },
-
-    'as'=>function($in, $params) {
-        $e = new \Tempe\Filter\WebEscaper;
-        return $e->{$params->key}($in);
-    },
+*/
+$vars = [
+    'var'=>[
+        'a'=>1, 'b'=>2, 'c'=>3
+    ], 
+    'foo'=>'hello', 
+    'array'=>['kid1'=>['kid2'=>['thing'=>'yep']], 'kid3'=>'ass'],
+    'ass'=>'grr',
+    'pants'=>[
+        'a'=>'foo',
+        'b'=>'bar',
+        'c'=>'baz',
+        'd'=>'qux',
+    ],
 ];
 
-$r = new Tempe\Renderer($h);
-echo $r->renderTree($tree, $vars);
+$p = new Tempe\Parser;
+$s = microtime(true);
+$tree = $p->parse($tpl);
+$pt = microtime(true) - $s;
 
+$r = new Tempe\Renderer($h);
+
+$s = microtime(true);
+$out = $r->renderTree($tree, $vars);
+$rt = microtime(true) - $s;
+
+Tempe\Helper::dumpNode($tree);
+echo $out."\n";
+echo "parse time:  $pt\n";
+echo "render time: $rt\n";
+
+if (isset($GLOBALS['time']))
+    echo $GLOBALS['time']."\n";
 }
 
 namespace Tempe { function create_classes() {
@@ -198,7 +317,19 @@ class Renderer
     public function renderTree($tree, &$vars=[])
     {
         $out = '';
+        $param = (object) [
+            'scope'=>&$vars,
+            'chainPos'=>0,
+            'stop'=>false,
+            'args'=>null,
+            'argc'=>null,
+            'node'=>null,
+            'renderer'=>$this
+        ];
+
         foreach ($tree->c as $node) {
+            $param->node = $node;
+
             if ($node->t == self::P_STRING) {
                 $out .= $node->v;
             }
@@ -208,24 +339,14 @@ class Renderer
                 if (!$node->h)
                     continue;
 
-                $curHandler = $this->handler;
-                $idx = 0;
+                $param->chainPos = 0;
                 foreach ($node->h as $h) {
-                    list ($handlerId, $key) = $h;
+                    list ($handlerId, $param->args, $param->argc) = $h;
                     if (!isset($this->handlers[$handlerId]))
-                        throw new RenderException("Unknown handler '$handlerId' on line {$node->l}");
+                        $this->raise("Unknown handler '$handlerId'", $node);
 
-                    $param = (object) [
-                        'in'=>$val,
-                        'scope'=>&$vars,
-                        'chainPos'=>$idx,
-                        'stop'=>false,
-                        'key'=>$key,
-                        'node'=>$node,
-                        'renderer'=>$this
-                    ];
                     $val = $this->handlers[$handlerId]($val, $param);
-                    ++$idx;
+                    ++$param->chainPos;
 
                     if ($param->stop)
                         break;
@@ -341,26 +462,40 @@ class Parser
                             'h' => [],
                         ];
 
-                        $pattern = '/(?: \s+ | ([:\|]) )/x';
+                        $pattern = '/(?: \s+ | ( [:\|] ) )/x';
                         $flags = PREG_SPLIT_NO_EMPTY | PREG_SPLIT_DELIM_CAPTURE;
-                        $tagTokens = preg_split($pattern, $buffer, null, $flags);
+                        $tagTokens = preg_split($pattern, trim($buffer), null, $flags);
                         $tagTokens[] = null;
 
-                        $ttcur = [];
-                        foreach ($tagTokens as $t) {
+                        $hid = null;
+                        $args = [];
+                        $argc = 0;
+                        foreach ($tagTokens as $idx=>$t) {
+                            // colon siginfies the end of an ID. only the first tag token
+                            // before a colon can be the ID. the colon can only appear
+                            // after the first token
                             if ($t == ':') {
-                                if (isset($ttcur[1])) throw new ParseException("Invalid ID");
-                                $newNode->i = $ttcur[0];
-                                $ttcur = [];
+                                if ($idx > 1)
+                                    throw new ParseException("Unexpected ':'", $bufferLine);
+                                $newNode->i = $hid;
+                                $hid = null;
                             }
                             elseif ($t == '|' || $t === null) {
-                                if (isset($ttcur[2])) throw new ParseException("Invalid ID");
-                                if (!isset($ttcur[1])) $ttcur[1] = null;
-                                $newNode->h[] = $ttcur;
-                                $ttcur = [];
+                                if ($hid) {
+                                    $newNode->h[] = [$hid, $args, $argc];
+                                    $hid = null;
+                                }
+                                $args = [];
+                                $argc = 0;
                             }
                             else {
-                                $ttcur[] = $t;
+                                if (!$hid) {
+                                    $hid = $t;
+                                }
+                                else {
+                                    $args[] = $t;
+                                    ++$argc;
+                                }
                             }
                         }
                     } // end create
@@ -380,7 +515,7 @@ class Parser
 
                             $id = trim($buffer);
                             if (($node->i || $id) && $node->i != $id)
-                                throw new ParseException("Block close mismatch. Expected '{$node->i}', found '$id'");
+                                throw new ParseException("Block close mismatch. Expected '{$node->i}', found '$id'", $line);
                             $node->vc = $tagString;
                             $node = $stack[--$stackIdx];
 
@@ -461,6 +596,7 @@ class Parser
         return $out;
     }
 }
+
 class Helper
 {
     static function dumpNode($node, $options=[])
@@ -510,12 +646,12 @@ class Helper
         
         if ($options['termColour']) {
             $treeFmt = "\e[90m%{$max['depthLen']}s\e[0m  \e[94m%{$max['lineLen']}s\e[0m %s\e[{nc}m%s\e[0m";
-            $handlerFmt = "\e[94m%s\e[36m%s\e[0m";
+            $handlerFmt = "\e[94m%s (\e[36m%s\e[94m)\e[0m";
             $tableFmt = "%s%s  \e[90m|\e[0m  %s\n";
         }
         else {
             $treeFmt = "%{$max['depthLen']}s  %{$max['lineLen']}s %s%s";
-            $handlerFmt = "%s%s";
+            $handlerFmt = "%s %s";
             $tableFmt = "%s%s  |  %s\n";
         }
 
@@ -538,7 +674,8 @@ class Helper
             if ($node->t == Renderer::P_BLOCK || $node->t == Renderer::P_VALUE) {
                 $value = [];
                 foreach ($node->h as $hc) {
-                    $value[] = sprintf($handlerFmt, $hc[0], isset($hc[1]) ? " {$hc[1]}" : null);
+                    $args = isset($hc[1]) && $hc[1] ? implode(' ', $hc[1]) : '';
+                    $value[] = sprintf($handlerFmt, $hc[0], $args);
                 }
                 $value = implode(" -> ", $value);
             }
@@ -576,7 +713,7 @@ class Helper
 
 class RenderException extends \RuntimeException
 {
-    function __construct($message, $line=null)
+    function __construct($message='', $line=null)
     {
         if ($line)
             $message .= " at line {$line}";
@@ -594,6 +731,20 @@ class ParseException extends \RuntimeException
 
         parent::__construct(trim($message));
     }
+}
+
+function throw_on_error()
+{
+	static $set=false;
+	if (!$set) {
+		set_error_handler(function ($errno, $errstr, $errfile, $errline) {
+			$reporting = error_reporting();
+			if ($reporting > 0 && ($reporting & $errno)) {
+				throw new \ErrorException($errstr, 0, $errno, $errfile, $errline);
+			}
+		});
+		$set = true;
+	}
 }
 
 }}
