@@ -8,6 +8,7 @@ class HandlerContext
     public $stop = false;
     public $args;
     public $argc;
+    public $handler;
     public $node;
     public $renderer;
 }

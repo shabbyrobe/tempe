@@ -1,7 +1,7 @@
 <?php
 namespace Tempe\Test\Ext\Lang;
 
-use Tempe\Ext;
+use Tempe\Lang;
 
 class BlockIfTest extends \PHPUnit_Framework_TestCase
 {
@@ -52,7 +52,7 @@ class BlockIfTest extends \PHPUnit_Framework_TestCase
 
     function testIfUnsetHideWhenUnsetDisallowed()
     {
-        $this->runHiddenBlockTest('if', [], 'foo', new Ext\Lang(['allowUnsetKeys'=>false]));
+        $this->runHiddenBlockTest('if', [], 'foo', new Lang\Part\Core(['allowUnsetKeys'=>false]));
     }
 
     function testNotUnsetShow()
@@ -62,7 +62,7 @@ class BlockIfTest extends \PHPUnit_Framework_TestCase
 
     function testNotUnsetShowWhenUnsetDisallowed()
     {
-        $this->runShownBlockTest('not', [], 'foo', new Ext\Lang(['allowUnsetKeys'=>false]));
+        $this->runShownBlockTest('not', [], 'foo', new Lang\Part\Core(['allowUnsetKeys'=>false]));
     }
 
     function runShownBlockTest($handler, $vars, $key, $ext=null)

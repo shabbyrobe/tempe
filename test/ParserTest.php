@@ -255,12 +255,12 @@ class ParserTest extends \PHPUnit_Framework_TestCase
         $expected = [];
         foreach ($handlerShorthand as $v) {
             $v = (array)$v;
-            $h = ['handler'=>$v[0], 'args'=>[], 'argc'=>0];
+            $h = ['name'=>$v[0], 'args'=>[], 'argc'=>0];
             if (isset($v[1])) {
                 $h['args'] = $v[1];
                 $h['argc'] = count($v[1]);
             }
-            $expected[] = $h;
+            $expected[] = (object) $h;
         }
         return $expected;
     }
@@ -351,7 +351,7 @@ class ParserTest extends \PHPUnit_Framework_TestCase
         foreach ($blocks as $h) {
             $this->assertCount(1, $node->nodes);
             $this->assertEquals('b'.$h, $node->nodes[0]->id);
-            $this->assertEquals('h'.$h, $node->nodes[0]->chain[0]['handler']);
+            $this->assertEquals('h'.$h, $node->nodes[0]->chain[0]->name);
             $node = $node->nodes[0];
         }
         $this->assertEquals($str, $node->nodes[0]->v);
@@ -384,7 +384,7 @@ class ParserTest extends \PHPUnit_Framework_TestCase
         $node = $tree;
         foreach ($blocks as $h) {
             $this->assertCount(1, $node->nodes);
-            $this->assertEquals($h, $node->nodes[0]->chain[0]['handler']);
+            $this->assertEquals($h, $node->nodes[0]->chain[0]->name);
             $node = $node->nodes[0];
         }
         $this->assertEquals($str, $node->nodes[0]->v);

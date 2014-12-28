@@ -25,7 +25,7 @@ class Helper
             if ($flat == null) $flat = [];
             if ($depth > $max['depth']) $max['depth'] = $depth;
 
-            $nodeName = isset($node->id) ? $node->id : static::nodeName($node->type);
+            $nodeName = isset($node->id) && $node->id ? $node->id : static::nodeName($node->type);
             $nodeNameLen = strlen($nodeName);
             if ($nodeNameLen > $max['nameLen']) $max['nameLen'] = $nodeNameLen;
 
@@ -73,15 +73,15 @@ class Helper
                 - $spacingLen;
 
             $treePad = str_repeat(' ', $treePadLen);
-            $tf = str_replace("{nc}", isset($node->id) ? "1;92" : "0", $treeFmt);
+            $tf = str_replace("{nc}", isset($node->id) && $node->id ? "1;92" : "0", $treeFmt);
             $nodeStr = sprintf($tf, $depth, $node->line, $ws, $name);
 
             $value = "";
             if ($node->type == Renderer::P_BLOCK || $node->type == Renderer::P_VALUE) {
                 $value = [];
                 foreach ($node->chain as $hc) {
-                    $args = $hc['args'] ? implode(' ', $hc['args']) : '';
-                    $value[] = sprintf($handlerFmt, $hc['handler'], $args);
+                    $args = $hc->args ? implode(' ', $hc->args) : '';
+                    $value[] = sprintf($handlerFmt, $hc->name, $args);
                 }
                 $value = implode(" -> ", $value);
             }

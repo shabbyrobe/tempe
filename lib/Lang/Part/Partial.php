@@ -54,21 +54,21 @@ class Partial
     function check($handler, $node, $chainPos)
     {
         // can't check dynamic partial
-        if (!isset($handler['args'][0])) {
+        if (!isset($handler->args[0])) {
             if ($chainPos == 0)
                 throw new Exception\Check("Partial without key cannot be first in a chain", $node->line);
         }
         else {
-            $key = $handler['args'][0];
+            $key = $handler->args[0];
             try {
                 $file = $this->resolveFile($key);
             }
             catch (\Exception $ex) {
-                throw new \Tempe\Exception\Check("Could not resolve {$handler['handler']} '$key': {$ex->getMessage()}", $node->line, null, $ex);
+                throw new \Tempe\Exception\Check("Could not resolve {$handler->name} '$key': {$ex->getMessage()}", $node->line, null, $ex);
             }
             
             if (!file_exists($file)) {
-                throw new \Tempe\Exception\Check("{$handler['handler']} failed: File $key not found", $node->line, null, $ex);
+                throw new \Tempe\Exception\Check("{$handler->handler} failed: File $key not found", $node->line, null, $ex);
             }
         }
         return true;

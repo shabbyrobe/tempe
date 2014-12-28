@@ -6,6 +6,8 @@ class Parser
     const M_STRING = 1;
     const M_TAG = 2;
 
+    const VERSION = 2;
+
     private $patternTag;
     private $lang;
 
@@ -41,7 +43,13 @@ class Parser
             $tokens = $this->tokenise($tokens);
 
         $line = 1;
-        $tree = (object)['type'=>Renderer::P_ROOT, 'id'=>null, 'nodes'=>[], 'line'=>$line];
+        $tree = (object)[
+            'type'=>Renderer::P_ROOT,
+            'id'=>null, 
+            'nodes'=>[],
+            'line'=>$line,
+            'version'=>Parser::VERSION,
+        ];
         $node = $tree;
         $stack = [$node];
         $stackIdx = 0;
@@ -119,13 +127,17 @@ class Parser
                             if (($node->id || $id) && $node->id != $id)
                                 throw new Exception\Parse("Block close mismatch. Expected '{$node->id}', found '$id'", $line);
                             $node->vc = $tagString;
-                            $node = $stack[--$stackIdx];
 
+                            if ($this->lang) {
+                                foreach ($node->chain as $pos=>$handler)
+                                    $this->lang->check($handler, $node, $pos);
+                            }
+
+                            $node = $stack[--$stackIdx];
                         }
                         else {
                             $newNode->v = $tagString;
                             $node->nodes[] = $newNode;
-
                             if ($this->lang) {
                                 foreach ($newNode->chain as $pos=>$handler)
                                     $this->lang->check($handler, $newNode, $pos);
@@ -194,7 +206,7 @@ class Parser
 
             foreach ($tok as $t) {
                 if ($t == '|' || $t == null) {    
-                    $newNode->chain[] = ['handler'=>$h, 'args'=>$a, 'argc'=>$c];
+                    $newNode->chain[] = (object) ['name'=>$h, 'args'=>$a, 'argc'=>$c];
                     $h = null;
                     $a = [];
                     $c = 0;

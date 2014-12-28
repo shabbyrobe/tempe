@@ -1,8 +1,6 @@
 Tempe
 =====
 
-.. image:: https://travis-ci.org/shabbyrobe/tempe.svg
-
 Tempe (temˈpē) is a very simple templating language.
 
 It is named after the suburb of Sydney, which is where I was driving when I decided how I
@@ -13,78 +11,90 @@ simple but feature-rich template language, and it also comes bundled with a pre-
 generic language which provides semantics which will appear somewhat familiar to users of
 `handlebars.js <http://handlebarsjs.com/>`_.
 
-If you want a simple, flexible templating engine comparable to Mustache/Handlebars or
-Twig/Jinja2, see :ref:`language-quickstart`.
+Tempe is separated into two parts: The Guts and The Language.
 
-If you want to make your own simple, domain-specific templating language using Tempe's
-primitives, see :ref:`guts-quickstart`.
+And so, on to the canonical example. Using The Language, a typical Tempe template would
+look like so::
+
+    Hello {{ var name | as html }}
+    You have just won {{ var value }} dollars!
+    {{# if in_ca }}
+    Well, {{ var taxed_value }} dollars, after taxes.
+    {{/ }}
+
+Given the following hash::
+
+    {
+      "name": "Chris",
+      "value": 10000,
+      "taxed_value": 10000 - (10000 * 0.4),
+      "in_ca": true
+    }
+
+Tempe will produce the following::
+
+    Hello Chris
+    You have just won 10000 dollars!
+    Well, 6000 dollars, after taxes.
+
+
+.. contents::
 
 
 Why?
 ----
 
-The usual reason: dissatisfaction with the existing options.
+Mustache is great, but Mustache can stop you from doing all the things in life you'd like
+to. Like those little bits of "logic" that aren't really quite logic but you still need
+anyway. Context-specific escaping filters spring instantly to mind.
 
-`Mustache <http://mustache.github.io/>`_ is great, but Mustache can stop you from doing
-all the things in life you'd like to. Like those little bits of "logic" that aren't really
-quite logic but you still need anyway. Context-specific escaping filters spring instantly
-to mind.
-
-`Twig <http://twig.sensiolabs.com/>`_ is also great, but boy is it ever slow. Complex
-templates can also be extremely cumbersome to work with due to how easy it is to allow
-convoluted expression logic to bleed in to the template from your controller, and very
-easily fall prey to ill-disciplined developers (I'm looking at you, everybody, and
-especially at you, clock).
-
-Both of these templating engines are fine choices, but I've spent too long bumping up
-against the problems with both approaches. Tempe is an experiment in finding a
-middle-ground. Remove the worst of the messy logic from Twig, keep the primitives as
-simple as they can possibly be like Mustache.
-
-Tempe's Guts are also much simpler than both Mustache and Twig - it comes with no features
-by default, but the primitives it does provide make it possible to provide a
-feature-complete replacement for either. Tempe comes bundled with an implementation of
-these features you can use if you wish, though you do not have to.
+Tempe's Guts are also much simpler than Mustache - it comes with fewer features by default,
+but the primitives it does provide make it possible to provide a feature-complete
+replacement. Tempe comes with an implementation of these features you can use if you
+wish, though you do not have to.
 
 Because of this design, Tempe can also be used to create your own templating DSL using its
 Guts - you can strip it back to almost nothing and tailor it to your needs. This
 makes it ideal for scenarios where you do not want to provide a complex templating system
 but need a little bit more than ``strtr`` can give you (which is exactly the scenario that
-led me to write it in the first place - ``strtr`` was too simple, Twig wasn't simple
-enough, Mustache is too HTML-specific).
+led me to write it in the first place - ``strtr`` was too simple, Mustache wasn't simple
+enough).
 
+
+The Guts
+--------
 
 Primitives
-----------
+~~~~~~~~~~
 
-There are three types of primitive in Tempe - **value tags**, **block tags** and the
-**escape sequence**.
+There are three types of primitive in the Tempe Guts - **value tags**, **block
+tags** and the **escape sequence**.
 
-Tags
-~~~~
+All tag primitives are opened with ``{{`` and closed with ``}}``. Unlike Mustache, this
+cannot be changed.
 
-All tags are opened with ``{{`` and closed with ``}}``. This cannot be changed.
+Value tags look like this::
 
-Value tags are intended to be wholly substituted and look like this::
+    {{ handler }}
+    {{ handler arg1 arg2 }}
+    {{ handler1 | handler2 }}
+    {{ handler1 arg1 | handler1 arg2 | handler2 a b c }}
 
-    {{ chain }}
+Block tags look like this::
 
-Block tags are used to enclose ::
-
-    {{# chain }}contents{{/ }}
-
-Block tags can be nested to an arbitrary depth::
-
-    {{# chain }}{{# chain }}{{/ }}{{/ }}
+    {{# handler }}{{/ }}
+    {{# handler arg1 arg2 }}{{/ }}
+    {{# handler1 | handler2 }}{{/ }}
+    {{# handler1 arg1 | handler1 arg2 }}{{/ }}
 
 Blocks can be named to make closing tags easier to identify::
 
-    {{# b1: chain }} {{# b2: chain }} {{/ b2 }} {{/ b1 }}
+    {{# myblock: handler }}{{/ myblock }}
 
-Both block and value tags MAY contain a `chain` of `handlers`.
+Both block and value tags contain **identifiers** which are separated by whitespace and/or
+pipe characters (``|``), and which must satisfy the following regex::
 
-
-    [a-zA-Z_\/\.\-\d]+
+    [a-zA-Z\d_]([a-zA-Z_\/\.\-\d]*[a-zA-Z\d])*
 
 Block and value tags may contain a chain of **handlers**. Each handler is separated by a
 pipe. You can chain as many handlers together as you wish.
@@ -121,45 +131,6 @@ You can simulate template comments by using an empty block. This does not affect
 parser, only the renderer::
 
     {{#}}This will not appear{{/}}
-
-
-.. _language-quickstart:
-
-The Language Quickstart
------------------------
-
-
-Here is the canonical Mustache example implemented in Tempe's supplied templating
-language::
-
-    Hello {{ var name | as html }}
-    You have just won {{ var value }} dollars!
-    {{# if in_ca }}
-    Well, {{ var taxed_value }} dollars, after taxes.
-    {{/ }}
-
-Given the following hash::
-
-    {
-      "name": "Chris",
-      "value": 10000,
-      "taxed_value": 10000 - (10000 * 0.4),
-      "in_ca": true
-    }
-
-Tempe will produce the following::
-
-    Hello Chris
-    You have just won 10000 dollars!
-    Well, 6000 dollars, after taxes.
-
-
-.. contents::
-
-
-
-The Guts
---------
 
 
 Value Tags

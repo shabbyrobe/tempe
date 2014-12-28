@@ -1,6 +1,8 @@
 <?php
 namespace Tempe\Lang\Part;
 
+use Tempe\Renderer;
+
 class Strings
 {
     public $rules = [];
@@ -26,9 +28,9 @@ class Strings
             'base64'=>'base64_encode',
         ];
 
-        $stringRule = ['argc'=>0];
-        $stringHandler = function($in, $context) {
-            $f = $context->args[0];
+        $stringRule = ['argc'=>0, 'notFirst'=>true];
+        $stringHandler = function($in, $context) use ($strings) {
+            $f = $strings[$context->handler];
             return $f($in);
         };
 

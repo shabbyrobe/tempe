@@ -11,16 +11,16 @@ class Core
     function __construct($options=[])
     {
         $this->rules = [
-            'var'  => ['argMin'=>0, 'argMax'=>1],
-            'dump' => ['argc'=>0],
-            'is'   => ['argc'=>1],
-            'not'  => ['argc'=>1],
-            'each' => ['argMin'=>0, 'argMax'=>1, 'allowValue'=>false],
-            'set'  => ['argc'=>1],
-            'as'   => ['argc'=>1],
-            'push' => ['argc'=>1, 'chainable'=>false],
-            'show' => ['argc'=>0, 'allowValue'=>false],
-            'hide' => ['argc'=>0, 'allowValue'=>false],
+            'var'   => ['argMin'=>0, 'argMax'=>1],
+            'dump'  => ['argc'=>0],
+            'eqval' => ['argc'=>1],
+            'eqvar' => ['argc'=>1],
+            'not'   => ['argc'=>0],
+            'each'  => ['argMin'=>0, 'argMax'=>1, 'allowValue'=>false],
+            'as'    => ['argc'=>1, 'notFirst'=>true],
+            'push'  => ['argc'=>1, 'chainable'=>false],
+            'show'  => ['argc'=>0, 'allowValue'=>false],
+            'set'   => ['argc'=>1, 'last'=>true],
         ];
 
         { // whitelisting & blacklisting
@@ -68,7 +68,7 @@ class Core
                     $key = $in;
 
                 if (!array_key_exists($key, $scope))
-                    throw new Exception\Render("Could not find key '$key' in ".($scopeInput ? 'input' : 'context')." scope", $context->node->line);
+                    throw new Exception\Render("'var' could not find key '$key' in ".($scopeInput ? 'input' : 'context')." scope", $context->node->line);
 
                 return $scope[$key];
             };
@@ -82,21 +82,27 @@ class Core
             };
         }
 
-        if (isset($this->rules['is'])) {
-            $this->handlers['is'] = function($in, $context) {
-                if ($in != $context->args[0])
-                    $context->stop = true;
-                else
-                    return $in;
+        if (isset($this->rules['eqvar'])) {
+            $this->handlers['eqvar'] = function($in, $context) {
+                $key = $context->args[0];
+                if (!array_key_exists($key, $context->scope))
+                    throw new Exception\Render("'eqvar' could not find key '$key' in scope", $context->node->line);
+                
+                return is_object($in) 
+                    ? $in == $context->scope[$key]
+                    : $in === $context->scope[$key];
+            };
+        }
+
+        if (isset($this->rules['eqval'])) {
+            $this->handlers['eqval'] = function($in, $context) {
+                return $in == $context->args[0];
             };
         }
 
         if (isset($this->rules['not'])) {
             $this->handlers['not'] = function($in, $context) {
-                if ($in == $context->args[0])
-                    $context->stop = true;
-                else
-                    return $in;
+                return !$in;
             };
         }
 
@@ -104,7 +110,7 @@ class Core
             $this->handlers['set'] = function($in, $context) {
                 $key = $context->args[0];
                 if ($context->node->type == \Tempe\Renderer::P_BLOCK)
-                    $context->scope[$key] = $context->renderer->renderTree($context->node);
+                    $context->scope[$key] = $context->renderer->renderTree($context->node, $context->scope);
                 else
                     $context->scope[$key] = $in;
             };
@@ -157,13 +163,8 @@ class Core
 
         if (isset($this->rules['show'])) {
             $this->handlers['show'] = function($in, $context) {
-                return $context->renderer->renderTree($context->node, $context->scope);
-            };
-        }
-
-        if (isset($this->rules['hide'])) {
-            $this->handlers['hide'] = function($in, $context) {
-                return $context->renderer->renderTree($context->node, $context->scope);
+                if ($context->chainPos == 0 || $in)
+                    return $context->renderer->renderTree($context->node, $context->scope);
             };
         }
 

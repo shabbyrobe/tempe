@@ -66,65 +66,41 @@ class AcceptanceTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals($initialVars, $vars);
     }
 
-    function testBlock()
+    function testSetCapture()
     {
-        $tpl = "{{#block hello}}world{{/}}{{var hello}}";
+        $tpl = "{{#set hello}}world{{/}}{{var hello}}";
         $expected = "world";
         $r = $this->getRenderer();
         $this->assertEquals($expected, $r->render($tpl, $vars));
         $this->assertEquals(['hello'=>'world'], $vars);
     }
 
-    /** @depends testBlock */
-    function testBlockNoKeyFilters()
+    function testSetCaptureFailsIfNotLast()
     {
-        $tpl = "{{#block | strtoupper}}world{{/}}";
+        $tpl = "{{#set hello | upper}}world{{/}}";
         $expected = "WORLD";
         $r = $this->getRenderer();
-        $r->filters['strtoupper'] = 'strtoupper';
-        $this->assertEquals($expected, $r->render($tpl, $vars));
-        $this->assertEmpty($vars);
+        $this->setExpectedException('Tempe\Exception\Check', "Handlers may not follow 'set' in a chain");
+        $r->render($tpl, $vars);
     }
 
-    /** @depends testBlock */
-    function testBlockKeyIgnoresFilters()
+    /** @depends testSetCapture */
+    function testSetCaptureOverwrites()
     {
-        $tpl = "{{#block hello | strtoupper}}world {{var foo}}{{/}}{{var hello}}";
-        $expected = "world pants";
-        $r = $this->getRenderer();
-        $r->filters['strtoupper'] = 'strtoupper';
-        $vars = ['foo'=>'pants'];
-        $this->assertEquals($expected, $r->render($tpl, $vars));
-        $this->assertEquals(['foo'=>'pants', 'hello'=>'world pants'], $vars);
-    }
-
-    /** @depends testBlock */
-    function testBlockNoKeyNoFilters()
-    {
-        $tpl = "{{#block}}world{{/}}";
-        $expected = "world";
-        $r = $this->getRenderer();
-        $this->assertEquals($expected, $r->render($tpl, $vars));
-        $this->assertEmpty($vars);
-    }
-
-    /** @depends testBlock */
-    function testBlockOverwrites()
-    {
-        $tpl = "{{#block hello}}world{{/}}{{#block hello}}pants{{/}}{{var hello}}";
+        $tpl = "{{#set hello}}world{{/}}{{#set hello}}pants{{/}}{{var hello}}";
         $expected = "pants";
         $r = $this->getRenderer();
         $this->assertEquals($expected, $r->render($tpl, $vars));
         $this->assertEquals(['hello'=>'pants'], $vars);
     }
 
-    /** @depends testBlock */
-    function testBlockInsideEachDoesntEscape()
+    /** @depends testSetCapture */
+    function testSetCaptureInsideEachDoesntHoist()
     {
-        $tpl = "In: {{#each foo}}{{#block hello}}world{{/}}{{var hello}}{{/}}, Out: {{var hello }}";
-        $expected = "In: worldworld, Out: ";
+        $tpl = "In: {{#each foo}}{{#set hello}}world{{/}}{{var hello}}{{/}}, Out: {{var hello }}";
+        $expected = "In: worldworld, Out: yep";
         $initialVars = $vars = [
-            'foo'=>['a'=>'foo', 'b'=>'bar'],
+            'hello'=>'yep', 'foo'=>['a'=>'foo', 'b'=>'bar'],
         ];
         $r = $this->getRenderer();
         $this->assertEquals($expected, $r->render($tpl, $vars));
@@ -135,7 +111,7 @@ class AcceptanceTest extends \PHPUnit_Framework_TestCase
 
     function testPushAssocArray()
     {
-        $tpl = "{{#push foo}}{{var bar }}{{/push}} {{var bar }}";
+        $tpl = "{{#push foo}}{{var bar }}{{/}} {{var bar }}";
         $expected = "inner outer";
         $initialVars = $vars = [
             'foo'=>['bar'=>'inner'],
@@ -146,9 +122,22 @@ class AcceptanceTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals($initialVars, $vars);
     }
 
+    function testPushNestedHoists()
+    {
+        $tpl = "{{# push foo}}{{# push bar }}{{var baz }}{{/}}{{/}} {{ var baz }}";
+        $expected = "inner outer";
+        $initialVars = $vars = [
+            'foo'=>['bar'=>['baz'=>'inner']],
+            'baz'=>'outer',
+        ];
+        $r = $this->getRenderer();
+        $this->assertEquals($expected, $r->render($tpl, $vars));
+        $this->assertEquals($initialVars, $vars);
+    }
+
     function testPushNumericArray()
     {
-        $tpl = "{{#push foo}}{{var 0}} {{var 1}}{{/push}}";
+        $tpl = "{{#push foo}}{{var 0}} {{var 1}}{{/}}";
         $expected = "bar baz";
         $initialVars = $vars = [
             'foo'=>['bar', 'baz'],
@@ -161,7 +150,7 @@ class AcceptanceTest extends \PHPUnit_Framework_TestCase
     function testPushUnsetAllowed()
     {
         $tpl = "{{#push foo}}yep{{/}}";
-        $r = $this->getRenderer(new \Tempe\Ext\Lang());
+        $r = $this->getRenderer(new \Tempe\Lang\Part\Core());
         $vars = [];
         $this->assertEquals("yep", $r->render($tpl, $vars));
     }

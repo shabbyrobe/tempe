@@ -52,7 +52,7 @@ class VarTest extends \PHPUnit_Framework_TestCase
         $vars = [];
         $context = $this->createContext($vars, 'foo');
 
-        $this->setExpectedException('Tempe\Exception\Render', "Could not find key 'foo' in context scope");
+        $this->setExpectedException('Tempe\Exception\Render', "'var' could not find key 'foo' in context scope");
         $result = $c->handlers['var']('', $context);
     }
 
@@ -62,7 +62,7 @@ class VarTest extends \PHPUnit_Framework_TestCase
         $vars = [];
         $context = $this->createContext($vars, 'foo');
 
-        $this->setExpectedException('Tempe\Exception\Render', "Could not find key 'foo' in input scope");
+        $this->setExpectedException('Tempe\Exception\Render', "'var' could not find key 'foo' in input scope");
         $result = $c->handlers['var']([], $context);
     }
 }

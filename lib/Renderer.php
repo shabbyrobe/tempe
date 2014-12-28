@@ -30,15 +30,19 @@ class Renderer
     public function renderTree($tree, &$vars=[])
     {
         $out = '';
-        $param = new HandlerContext;
-        $param->scope = &$vars;
-        $param->renderer = $this;
+        $context = new HandlerContext;
+        $context->scope = &$vars;
+        $context->renderer = $this;
 
         if (!isset($tree->nodes))
             return;
 
+        // only the root node has a version
+        if (isset($tree->version) && $tree->version != Parser::VERSION)
+            throw new \InvalidArgumentException('Tree version '.(isset($tree->version) ? $tree->version : '(null)').' does not match expected version '.Parser::VERSION);
+
         foreach ($tree->nodes as $node) {
-            $param->node = $node;
+            $context->node = $node;
 
             if ($node->type == self::P_STRING) {
                 $out .= $node->v;
@@ -49,19 +53,23 @@ class Renderer
                 if (!$node->chain)
                     continue;
 
-                $param->stop = false;
+                $context->stop = false;
 
-                foreach ($node->chain as $param->chainPos=>$h) {
-                    $param->argc = $h['argc'];
-                    $param->args = $h['args'];
+                foreach ($node->chain as $context->chainPos=>$h) {
+                    $context->argc = $h->argc;
+                    $context->args = $h->args;
+                    $context->handler = $h->name;
                     if ($this->check)
-                        $this->lang->check($h, $node, $param->chainPos);
+                        $this->lang->check($h, $node, $context->chainPos);
 
-                    $val = $this->lang->handle($h, $val, $param);
-                    if ($param->stop)
+                    $val = $this->lang->handle($h, $val, $context);
+                    if ($context->stop)
                         break;
                 }
-                $out .= @(string) $val;
+
+                // 'true' is cast to 1 so let's skip it
+                if ($val !== true)
+                    $out .= @(string) $val;
             }
             elseif ($node->type == self::P_ESC) {
                 $out .= '{';

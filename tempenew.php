@@ -192,6 +192,7 @@ Should print nothing:
 {{# yep: var foo | is hello | hide }}
 Should not show
 {{/ yep }}
+
 EOT;
 
 $vars = [
@@ -247,8 +248,8 @@ require "/home/bl/code/php/tempe/lib/Filter/WebEscaper.php";
 
 interface Lang
 {
-    function check(array $handler, $node, $chainPos);
-    function handle(array $handler, $in, HandlerContext $context);
+    function check($handler, $node, $chainPos);
+    function handle($handler, $in, HandlerContext $context);
 }
 
 class HandlerContext
@@ -270,9 +271,9 @@ class BasicLang implements Lang
         $this->rules = $rules;
     }
 
-    function check(array $handler, $node, $chainPos)
+    function check($handler, $node, $chainPos)
     {
-        $hid = $handler['handler'];
+        $hid = $handler->name;
 
         if (!isset($this->handlers[$hid]))
             throw new \Tempe\CheckException();
@@ -280,15 +281,15 @@ class BasicLang implements Lang
         if (isset($this->rules[$hid])) {
             $rule = $this->rules[$hid];
             if (isset($rule['argc'])) {
-                if ($handler['argc'] != $rule['argc'])
-                throw new \Tempe\CheckException("Handler '$hid' expected {$rule['argc']} arg(s), found {$handler['argc']} on line {$node->line}");
+                if ($handler->argc != $rule['argc'])
+                throw new \Tempe\CheckException("Handler '$hid' expected {$rule['argc']} arg(s), found {$handler->argc} on line {$node->line}");
             }
             else {
-                if (isset($rule['argMin']) && $handler['argc'] < $rule['argMin'])
-                    throw new \Tempe\CheckException("Handler '$hid' min args {$rule['argMin']}, found {$handler['argc']} on line {$node->line}");
+                if (isset($rule['argMin']) && $handler->argc < $rule['argMin'])
+                    throw new \Tempe\CheckException("Handler '$hid' min args {$rule['argMin']}, found {$handler->argc} on line {$node->line}");
 
-                if (isset($rule['argMax']) && $handler['argc'] > $rule['argMax'])
-                    throw new \Tempe\CheckException("Handler '$hid' max args {$rule['argMax']}, found {$handler['argc']} on line {$node->line}");
+                if (isset($rule['argMax']) && $handler->argc > $rule['argMax'])
+                    throw new \Tempe\CheckException("Handler '$hid' max args {$rule['argMax']}, found {$handler->argc} on line {$node->line}");
             }
 
             if (isset($rule['allowValue']) && !$rule['allowValue'] && $node->type == \Tempe\Renderer::P_VALUE)
@@ -305,9 +306,9 @@ class BasicLang implements Lang
         }
     }
 
-    function handle(array $handler, $val, HandlerContext $context)
+    function handle($handler, $val, HandlerContext $context)
     {
-        $h = $this->handlers[$handler['handler']];
+        $h = $this->handlers[$handler->name];
         return $h($val, $context);
     }
 }
@@ -365,8 +366,8 @@ class Renderer
                 $param->stop = false;
 
                 foreach ($node->chain as $param->chainPos=>$h) {
-                    $param->argc = $h['argc'];
-                    $param->args = $h['args'];
+                    $param->argc = $h->argc;
+                    $param->args = $h->args;
                     if ($this->check)
                         $this->lang->check($h, $node, $param->chainPos);
 
@@ -587,7 +588,7 @@ class Parser
 
         foreach ($tok as $t) {
             if ($t == '|' || $t == null) {    
-                $newNode->chain[] = ['handler'=>$h, 'args'=>$a, 'argc'=>$c];
+                $newNode->chain[] = (object) ['name'=>$h, 'args'=>$a, 'argc'=>$c];
                 $h = null;
                 $a = [];
                 $c = 0;
@@ -719,8 +720,8 @@ class Helper
             if ($node->type == Renderer::P_BLOCK || $node->type == Renderer::P_VALUE) {
                 $value = [];
                 foreach ($node->chain as $hc) {
-                    $args = $hc['args'] ? implode(' ', $hc['args']) : '';
-                    $value[] = sprintf($handlerFmt, $hc['handler'], $args);
+                    $args = $hc->args ? implode(' ', $hc->args) : '';
+                    $value[] = sprintf($handlerFmt, $hc->name, $args);
                 }
                 $value = implode(" -> ", $value);
             }

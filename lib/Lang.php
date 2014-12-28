@@ -3,6 +3,6 @@ namespace Tempe;
 
 interface Lang
 {
-    function check(array $handler, $node, $chainPos);
-    function handle(array $handler, $in, HandlerContext $context);
+    function check($handler, $node, $chainPos);
+    function handle($handler, $in, HandlerContext $context);
 }
