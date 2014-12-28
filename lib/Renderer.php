@@ -13,7 +13,7 @@ class Renderer
 
     function __construct(Lang $lang=null, $parser=null, $check=false)
     {
-        $this->lang = $lang ?: Lang\Factory::createBasic();
+        $this->lang = $lang ?: Lang\Factory::createDefault();
         $this->check = $check;
         $this->parser = $parser ?: new Parser($lang);
     }

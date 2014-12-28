@@ -14,6 +14,7 @@ class Parser
         $this->lang = $lang;
 
         $identifier = "[a-zA-Z_\/\.\-\d]+";
+
         $this->patternTag = "
             /^ 
                 (?: (?P<oid> ".$identifier." ): )? 

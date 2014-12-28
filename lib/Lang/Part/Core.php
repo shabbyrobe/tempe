@@ -1,12 +1,17 @@
 <?php
 namespace Tempe\Lang\Part;
 
+use Tempe\Exception;
+
 class Core
 {
-    function __construct()
+    public $handlers = [];
+    public $rules;
+
+    function __construct($options=[])
     {
         $this->rules = [
-            'var'  => ['argc'=>1],
+            'var'  => ['argMin'=>0, 'argMax'=>1],
             'dump' => ['argc'=>0],
             'is'   => ['argc'=>1],
             'not'  => ['argc'=>1],
@@ -18,44 +23,95 @@ class Core
             'hide' => ['argc'=>0, 'allowValue'=>false],
         ];
 
-        $this->handlers = [
-            'var'=>function($in, $context) {
-                $key = $context->args[0];
-                if ($in && isset($in[$key]))
-                    return $in[$key];
-                if (isset($context->scope[$key]))
-                    return $context->scope[$key];
-            },
+        { // whitelisting & blacklisting
+            if (isset($options['whitelist'])) {
+                if (isset($options['blacklist']))
+                    throw new \InvalidArgumentException("Only specify whitelist or blacklist, not both");
 
-            'dump'=>function($in, $context) {
+                $active = [];
+                foreach ($options['whitelist'] as $handler) {
+                    if (!isset($this->rules[$handler]))
+                        throw new \InvalidArgumentException("Unknown handler $handler");
+
+                    $active[$handler] = $this->rules[$handler];
+                }
+                $this->rules = $active;
+                unset($options['whitelist']);
+            }
+            elseif (isset($options['blacklist'])) {
+                foreach ($options['blacklist'] as $handler) {
+                    if (!isset($this->rules[$handler]))
+                        throw new \InvalidArgumentException("Unknown handler $handler");
+
+                    unset($this->rules[$handler]);
+                }
+                unset($options['blacklist']);
+            }
+        }
+
+        if (isset($this->rules['var'])) {
+            $this->handlers['var'] = function($in, $context) {
+                $scopeInput = false;
+
+                $key = isset($context->args[0]) ? $context->args[0] : null;
+                if ($key && $in !== '' && $in !== null) {
+                    $scopeInput = true;
+                    $scope = $in;
+                    if (!is_array($scope) && !$scope instanceof \ArrayAccess)
+                        throw new \Exception\Render("Input scope was not an array or ArrayAccess", $context->node->line);
+                }
+                else {
+                    $scope = $context->scope;
+                }
+
+                if ($in && !$key)
+                    $key = $in;
+
+                if (!array_key_exists($key, $scope))
+                    throw new Exception\Render("Could not find key '$key' in ".($scopeInput ? 'input' : 'context')." scope", $context->node->line);
+
+                return $scope[$key];
+            };
+        }
+
+        if (isset($this->rules['dump'])) {
+            $this->handlers['dump'] = function($in, $context) {
                 ob_start();
                 var_dump($in);
                 return ob_get_clean();
-            },
+            };
+        }
 
-            'is'=>function($in, $context) {
+        if (isset($this->rules['is'])) {
+            $this->handlers['is'] = function($in, $context) {
                 if ($in != $context->args[0])
                     $context->stop = true;
                 else
                     return $in;
-            },
+            };
+        }
 
-            'not'=>function($in, $context) {
+        if (isset($this->rules['not'])) {
+            $this->handlers['not'] = function($in, $context) {
                 if ($in == $context->args[0])
                     $context->stop = true;
                 else
                     return $in;
-            },
+            };
+        }
 
-            'set'=>function($in, $context) {
+        if (isset($this->rules['set'])) {
+            $this->handlers['set'] = function($in, $context) {
                 $key = $context->args[0];
                 if ($context->node->type == \Tempe\Renderer::P_BLOCK)
                     $context->scope[$key] = $context->renderer->renderTree($context->node);
                 else
                     $context->scope[$key] = $in;
-            },
+            };
+        }
 
-            'each'=>function($in, $context) {
+        if (isset($this->rules['each'])) {
+            $this->handlers['each'] = function($in, $context) {
                 $key = $context->argc == 1 ? $context->args[0] : null;
                 if ($in)
                     $iter = $in;
@@ -89,56 +145,39 @@ class Core
                     ++$idx;
                 }
                 return $out;
-            },
+            };
+        }
 
-            'push'=>function($in, $context) {
+        if (isset($this->rules['push'])) {
+            $this->handlers['push'] = function($in, $context) {
                 $scope = &$context->scope[$context->args[0]];
                 return $context->renderer->renderTree($context->node, $scope);
-            },
+            };
+        }
 
-            'show'=>function($in, $context) {
+        if (isset($this->rules['show'])) {
+            $this->handlers['show'] = function($in, $context) {
                 return $context->renderer->renderTree($context->node, $context->scope);
-            },
+            };
+        }
 
-            'hide'=>function($in, $context) {
+        if (isset($this->rules['hide'])) {
+            $this->handlers['hide'] = function($in, $context) {
                 return $context->renderer->renderTree($context->node, $context->scope);
-            },
+            };
+        }
 
-            'as'=>function($in, $context) {
+        if (isset($this->rules['as'])) {
+            $this->handlers['as'] = function($in, $context) {
                 static $e;
                 if (!$e)
                     $e = new \Tempe\Filter\WebEscaper;
                 return $e->{$context->args[0]}($in);
-            },
-        ];
+            };
+        }
 
-        $strings = [
-            'upper'=>'strtoupper',
-            'lower'=>'strtolower',
-            'ucfirst'=>'ucfirst',
-            'lcfirst'=>'lcfirst',
-            'ucwords'=>'ucwords',
-
-            'trim'=>'trim',
-            'ltrim'=>'ltrim',
-            'rtrim'=>'rtrim',
-
-            'rev'=>'strrev',
-
-            'nl2br'=>'nl2br',
-            'striptags'=>'strip_tags',
-            'base64'=>'base64_encode',
-        ];
-
-        $stringRule = ['argc'=>0];
-        $stringHandler = function($in, $context) {
-            $f = $context->args[0];
-            return $f($in);
-        };
-
-        foreach ($strings as $handler=>$function) {
-            $this->rules[$handler] = $stringRule;
-            $this->handlers[$handler] = $stringHandler;
+        if ($options) {
+            throw new \InvalidArgumentException("Unknown options: ".implode(', ', array_keys($options)));
         }
     }
 }

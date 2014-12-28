@@ -7,15 +7,17 @@ class PartialTest extends \PHPUnit_Framework_TestCase
 {
     function setUp()
     {
-        throw new \Exception();
-
         vfs\vfsStreamWrapper::setRoot(new vfs\vfsStreamDirectory('test'));
-        $this->renderer = new \Tempe\Renderer();
-        $this->renderer->addExtension(new \Tempe\Ext\Partial(['paths'=>['parts'=>"vfs://test"]]));
+
+        $partial = new \Tempe\Lang\Part\Partial(['paths'=>['parts'=>"vfs://test"]]);
+        $core = new \Tempe\Lang\Part\Core;
+        $lang = (new \Tempe\Lang\Basic())->addPart($partial);
+        $lang->handlers['var'] = $core->handlers['var'];
+        $this->renderer = new \Tempe\Renderer($lang);
 
         $count = 0;
         $v = function() use (&$count) { return $count++; };
-        $this->renderer->addExtension(['valueHandlers'=>['test'=>$v]]);
+        $lang->handlers['test'] = $v;
     }
 
     /**
@@ -24,7 +26,7 @@ class PartialTest extends \PHPUnit_Framework_TestCase
     function testTraversalFails($handler, $file)
     {
         $tpl = "{{ $handler $file }}";
-        $this->setExpectedException("InvalidArgumentException", "Invalid file $file");
+        $this->setExpectedException("Tempe\Exception\Check", "Invalid file $file");
         $out = $this->renderer->render($tpl);
     }
 
@@ -39,21 +41,21 @@ class PartialTest extends \PHPUnit_Framework_TestCase
     function testNoAliasFails()
     {
         $tpl = "{{ tpl file }}";
-        $this->setExpectedException("InvalidArgumentException", "Missing alias in file");
+        $this->setExpectedException("Tempe\Exception\Check", "Missing alias in file");
         $out = $this->renderer->render($tpl);
     }
 
     function testUnknownAliasFails()
     {
         $tpl = "{{ tpl alias/file }}";
-        $this->setExpectedException("InvalidArgumentException", "Unknown alias alias");
+        $this->setExpectedException("Tempe\Exception\Check", "Unknown alias alias");
         $out = $this->renderer->render($tpl);
     }
 
     function testUnknownFileFails()
     {
         $tpl = "{{ tpl parts/file }}";
-        $this->setExpectedException("InvalidArgumentException", "Could not load vfs://test/file");
+        $this->setExpectedException("Tempe\Exception\Check", "Could not load vfs://test/file");
         $out = $this->renderer->render($tpl);
     }
 
@@ -84,9 +86,9 @@ class PartialTest extends \PHPUnit_Framework_TestCase
 
     function testTplVar()
     {
-        $tpl = "-{{ tplvar var }}-";
+        $tpl = "-{{ var file | tpl }}-";
         file_put_contents("vfs://test/test.tpl", "{{ test }}");
-        $vars = ['var'=>'parts/test.tpl'];
+        $vars = ['file'=>'parts/test.tpl'];
         $out = $this->renderer->render($tpl, $vars);
         $this->assertEquals("-0-", $out);
     }
@@ -109,9 +111,9 @@ class PartialTest extends \PHPUnit_Framework_TestCase
 
     function testInclVar()
     {
-        $tpl = "-{{ inclvar var }}-";
+        $tpl = "-{{ var file | incl }}-";
         file_put_contents("vfs://test/test.txt", "{{ test }}");
-        $vars = ['var'=>'parts/test.txt'];
+        $vars = ['file'=>'parts/test.txt'];
         $out = $this->renderer->render($tpl, $vars);
         $this->assertEquals("-{{ test }}-", $out);
     }

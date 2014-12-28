@@ -35,7 +35,7 @@ class Basic implements Lang
         $hid = $handler['handler'];
 
         if (!isset($this->handlers[$hid]))
-            throw new Exception\Check();
+            throw new Exception\Check("Handler $hid not found", $node->line);
 
         if (isset($this->rules[$hid])) {
             $rule = $this->rules[$hid];
@@ -60,15 +60,14 @@ class Basic implements Lang
             if (isset($rule['chainable']) && !$rule['chainable'] && ($chainPos != 0 || isset($node->chain[1])))
                 throw new Exception\Check("Handler '$hid' is not chainable on line {$node->line}");
 
-            if (isset($rule['check']) && !$rule['check']($node, $handler, $chainPos))
+            if (isset($rule['check']) && !$rule['check']($handler, $node, $chainPos))
                 throw new Exception\Check("Handler '$hid' check failed on line {$node->line}");
         }
     }
 
     function handle(array $handler, $val, HandlerContext $context)
     {
-        $h = $this->handlers[$handler['handler']];
-        return $h($val, $context);
+        return $this->handlers[$handler['handler']]($val, $context);
     }
 }
 

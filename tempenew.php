@@ -24,11 +24,26 @@ $h = [
     },
 
     'var'=>function($in, $context) {
-        $key = $context->args[0];
-        if ($in && isset($in[$key]))
-            return $in[$key];
-        if (isset($context->scope[$key]))
-            return $context->scope[$key];
+        $scopeInput = false;
+
+        $key = isset($context->args[0]) ? $context->args[0] : null;
+        if ($key && $in !== '' && $in !== null) {
+            $scopeInput = true;
+            $scope = $in;
+            if (!is_array($scope) && !$scope instanceof \ArrayAccess)
+                throw new \Exception\Render("Input scope was not an array or ArrayAccess", $context->node->line);
+        }
+        else {
+            $scope = $context->scope;
+        }
+
+        if ($in && !$key)
+            $key = $in;
+
+        if (!array_key_exists($key, $scope))
+            throw new Exception\Render("Could not find key '$key' in ".($scopeInput ? 'input' : 'context')." scope", $context->node->line);
+
+        return $scope[$key];
     },
 
     'dump'=>function($in, $context) {
@@ -203,7 +218,7 @@ $lang = new Tempe\BasicLang($h, $rules);
 
 $p = new Tempe\Parser($lang);
 $s = microtime(true);
-for ($i=0; $i<10; $i++)
+for ($i=0; $i<1; $i++)
     $tree = $p->parse($tpl);
 $pt = microtime(true) - $s;
 
