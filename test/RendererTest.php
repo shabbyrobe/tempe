@@ -3,6 +3,7 @@ namespace Tempe\Test;
 
 use Tempe\Parser;
 use Tempe\Renderer;
+use Tempe\Lang\Basic as Lang;
 
 class RendererTest extends \PHPUnit_Framework_TestCase
 {
@@ -16,11 +17,23 @@ class RendererTest extends \PHPUnit_Framework_TestCase
         $tpl = '{{h}}';
         $tree = $this->parser->parse($tpl);
         
-        $renderer = new Renderer;
-        $renderer->valueHandlers['h'] = function() {
-            return 'bingo';
-        };
+        $lang = new Lang([
+            'h'=>function() { return 'bingo'; }
+        ]);
+        $renderer = new Renderer($lang);
         $this->assertEquals('bingo', $renderer->render($tpl));
+    }
+
+    function testPipeline()
+    {
+        $tpl = '{{h | h | h}}';
+        $tree = $this->parser->parse($tpl);
+        
+        $lang = new Lang([
+            'h'=>function($in) { return $in.'a'; }
+        ]);
+        $renderer = new Renderer($lang);
+        $this->assertEquals('aaa', $renderer->render($tpl));
     }
 
     /**
@@ -31,10 +44,10 @@ class RendererTest extends \PHPUnit_Framework_TestCase
         $tpl = '{{h}}';
         $tree = $this->parser->parse($tpl);
         
-        $renderer = new Renderer;
-        $renderer->valueHandlers['h'] = function() use ($value) {
-            return $value;
-        };
+        $lang = new Lang([
+            'h'=>function() use ($value) { return $value; }
+        ]);
+        $renderer = new Renderer($lang);
         $this->assertEquals($expected, $renderer->render($tpl));
     }
 
@@ -50,156 +63,66 @@ class RendererTest extends \PHPUnit_Framework_TestCase
         ];
     }
 
-    function testRenderValueHandlerKeyNoFilter()
+    function testRenderValueSingleHandlerWithKeys()
     {
-        $tpl = '{{h key}}';
+        $tpl = '{{h key1 key2}}';
         $tree = $this->parser->parse($tpl);
         
-        $renderer = new Renderer;
-        $renderer->valueHandlers['h'] = function($scope, $key) {
-            return 'bingo '.$key;
-        };
-        $this->assertEquals('bingo key', $renderer->render($tpl));
+        $lang = new Lang([
+            'h'=>function($in, $context) { return 'bingo('.implode(", ", $context->args).')'; }
+        ]);
+        $renderer = new Renderer($lang);
+        $this->assertEquals('bingo(key1, key2)', $renderer->render($tpl));
     }
 
-    function testRenderValueHandlerKeyFilter()
+    function testRenderValueMultipleHandlers()
     {
-        $tpl = '{{h key|f1}}';
-        $renderer = new Renderer;
-        $renderer->valueHandlers['h'] = function($scope, $key) {
-            return 'bingo '.$key;
-        };
-        $renderer->pipeHandlers['f1'] = function($value) {
-            return strtoupper($value);
-        };
-        $this->assertEquals('BINGO KEY', $renderer->render($tpl));
+        $tpl = '{{h1 | h1 | h2}}';
+        $lang = new Lang([
+            'h1'=>function($in, $context) { return $in.'ICE '; },
+            'h2'=>function($in, $context) { return $in.'BABY '; },
+        ]);
+        $renderer = new Renderer($lang);
+        $this->assertEquals('ICE ICE BABY ', $renderer->render($tpl));
     }
 
-    function testRenderValueHandlerKeyMultipleFilters()
+    function testRenderBlock()
     {
-        $tpl = '{{h key|f1|f2}}';
-        $renderer = new Renderer;
-        $renderer->valueHandlers['h'] = function($scope, $key) {
-            return 'bingo '.$key;
-        };
-        $renderer->pipeHandlers['f1'] = function($value) {
-            return strtoupper($value);
-        };
-        $renderer->pipeHandlers['f2'] = function($value) {
-            return lcfirst($value);
-        };
-        $this->assertEquals('bINGO KEY', $renderer->render($tpl));
-    }
-
-    function testRenderValueHandlerCallableFilter()
-    {
-        $tpl = '{{h key|f}}';
-        $renderer = new Renderer;
-        $renderer->valueHandlers['h'] = function($scope, $key) {};
-
-        $called = false;
-        $renderer->pipeHandlers['f'] = function($value) use (&$called) { $called = true; };
-        $renderer->render($tpl);
-        $this->assertTrue($called);
-    }
-
-    function testRenderValueHandlerClassFilter()
-    {
-        $tpl = '{{h key|f x}}';
-        $renderer = new Renderer;
-        $renderer->valueHandlers['h'] = function($scope, $key) { return "value"; };
-        
-        $renderer->pipeHandlers['f'] = new TestFilter;
-        $this->assertEquals('x(value)', $renderer->render($tpl));
-    }
-
-    function testRenderBlockHandlerNoKeyNoFilter()
-    {
-        $tpl = '{{#h}}{{/h}}';
+        $tpl = '{{#h}}{{/}}';
         $tree = $this->parser->parse($tpl);
         
-        $renderer = new Renderer;
-        $renderer->blockHandlers['h'] = function() {
-            return 'bingo';
-        };
+        $lang = new Lang([
+            'h'=>function() { return 'bingo'; }
+        ]);
+        $renderer = new Renderer($lang);
         $this->assertEquals('bingo', $renderer->render($tpl));
     }
 
-    function testRenderBlockHandlerKeyNoFilter()
+    function testRenderBlockSingleHandler()
     {
-        $tpl = '{{#h key}}{{/h}}';
+        $tpl = '{{#h key}}{{/}}';
         $tree = $this->parser->parse($tpl);
         
-        $renderer = new Renderer;
-        $renderer->blockHandlers['h'] = function($scope, $key) {
-            return 'bingo '.$key;
-        };
+        $lang = new Lang([
+            'h' => function($in, $context) { return 'bingo '.$context->args[0]; },
+        ]);
+        $renderer = new Renderer($lang);
         $this->assertEquals('bingo key', $renderer->render($tpl));
-    }
-
-    function testRenderBlockHandlerKeyFilter()
-    {
-        $tpl = '{{#h key|f1}}{{/h}}';
-        $renderer = new Renderer;
-        $renderer->blockHandlers['h'] = function($scope, $key) {
-            return 'bingo '.$key;
-        };
-        $renderer->pipeHandlers['f1'] = function($value) {
-            return strtoupper($value);
-        };
-        $this->assertEquals('BINGO KEY', $renderer->render($tpl));
-    }
-
-    function testRenderBlockHandlerKeyMultipleFilters()
-    {
-        $tpl = '{{#h key|f1|f2}}{{/h}}';
-        $renderer = new Renderer;
-        $renderer->blockHandlers['h'] = function($scope, $key) {
-            return 'bingo '.$key;
-        };
-        $renderer->pipeHandlers['f1'] = function($value) {
-            return strtoupper($value);
-        };
-        $renderer->pipeHandlers['f2'] = function($value) {
-            return lcfirst($value);
-        };
-        $this->assertEquals('bINGO KEY', $renderer->render($tpl));
-    }
-
-    function testRenderBlockHandlerCallableFilter()
-    {
-        $tpl = '{{#h key|f}}{{/h}}';
-        $renderer = new Renderer;
-        $renderer->blockHandlers['h'] = function($scope, $key) {};
-
-        $called = false;
-        $renderer->pipeHandlers['f'] = function($value) use (&$called) { $called = true; };
-        $renderer->render($tpl);
-        $this->assertTrue($called);
-    }
-
-    function testRenderBlockHandlerClassFilter()
-    {
-        $tpl = '{{#h key|f x}}{{/h}}';
-        $renderer = new Renderer;
-        $renderer->blockHandlers['h'] = function($scope, $key) { return "value"; };
-        
-        $renderer->pipeHandlers['f'] = new TestFilter;
-        $this->assertEquals('x(value)', $renderer->render($tpl));
     }
 
     function testRenderBlockCapturesContents()
     {
-        $tpl = '{{#h}}foo{{/h}}';
+        $tpl = '{{#h}}foo{{/}}';
         $tree = $this->parser->parse($tpl);
-        $renderer = new Renderer;
+        $lang = new Lang([
+            'h' => function($in, $context) use (&$result) {
+                $result = $context->node;
+            },
+        ]);
+        $renderer = new Renderer($lang);
 
-        $renderer->blockHandlers['h'] = function($scope, $key, $renderer, $contents) use (&$result) {
-            $result = $contents;
-        };
         $renderer->renderTree($tree);
-
-        $this->assertSame($tree->c[0], $result);
+        $this->assertSame($tree->nodes[0], $result);
     }
 
     /**
@@ -207,12 +130,14 @@ class RendererTest extends \PHPUnit_Framework_TestCase
      */
     function testRenderBlockSubrender()
     {
-        $tpl = '{{#h}}foo {{v}} bar{{/h}}';
-        $renderer = new Renderer;
-        $renderer->valueHandlers['v'] = function($scope, $key) { return "hello"; };
-        $renderer->blockHandlers['h'] = function($scope, $key, $renderer, $contents) {
-            return $renderer->renderTree($contents);
-        };
+        $tpl = '{{#h}}foo {{v}} bar{{/}}';
+        $lang = new Lang([
+            'v' => function($in, $context) { return "hello"; },
+            'h' => function($in, $context) {
+                return $context->renderer->renderTree($context->node);
+            },
+        ]);
+        $renderer = new Renderer($lang);
         $this->assertEquals("foo hello bar", $renderer->render($tpl));
     }
 
@@ -221,12 +146,14 @@ class RendererTest extends \PHPUnit_Framework_TestCase
      */
     function testRenderBlockNested()
     {
-        $tpl = '{{#h}}foo {{#h}} bar {{v}} baz {{/h}} qux{{/h}}';
-        $renderer = new Renderer;
-        $renderer->valueHandlers['v'] = function($scope, $key) { return "hello"; };
-        $renderer->blockHandlers['h'] = function($scope, $key, $renderer, $contents) {
-            return "<".$renderer->renderTree($contents).">";
-        };
+        $tpl = '{{#h}}foo {{#h}} bar {{v}} baz {{/}} qux{{/}}';
+        $lang = new Lang([
+            'v' => function($in, $context) { return "hello"; },
+            'h' => function($in, $context) {
+                return "<".$context->renderer->renderTree($context->node).">";
+            },
+        ]);
+        $renderer = new Renderer($lang);
         $this->assertEquals("<foo < bar hello baz > qux>", $renderer->render($tpl));
     }
 
@@ -235,17 +162,19 @@ class RendererTest extends \PHPUnit_Framework_TestCase
      */
     function testRenderBlockCanRenderTreeTwice()
     {
-        $tpl = '{{#h}}1 {{#h}} 2 {{v}} 3 {{/h}} 4{{/h}}';
-        $renderer = new Renderer;
-        $renderer->valueHandlers['v'] = function($scope, $key) { return "9"; };
-        $renderer->blockHandlers['h'] = function($scope, $key, $renderer, $contents) {
-            return "<"
-                .$renderer->renderTree($contents)
-                ."|"
-                .$renderer->renderTree($contents)
-                .">"
-            ;
-        };
+        $tpl = '{{#h}}1 {{#h}} 2 {{v}} 3 {{/}} 4{{/}}';
+        $lang = new \Tempe\Lang\Basic([
+            'v' => function($in, $context) { return "9"; },
+            'h' => function($in, $context) {
+                return "<"
+                    .$context->renderer->renderTree($context->node)
+                    ."|"
+                    .$context->renderer->renderTree($context->node)
+                    .">"
+                ;
+            },
+        ]);
+        $renderer = new Renderer($lang);
         $expected = "<1 < 2 9 3 | 2 9 3 > 4|1 < 2 9 3 | 2 9 3 > 4>";
         $this->assertEquals($expected, $renderer->render($tpl));
     }
@@ -255,8 +184,10 @@ class RendererTest extends \PHPUnit_Framework_TestCase
      */
     function testRenderEscapedBraces($tpl, $out)
     {
-        $renderer = new Renderer;
-        $renderer->valueHandlers['do'] = function($key) { return 'handled'; };
+        $lang = new Lang([
+            'do'=>function() { return 'handled'; }
+        ]);
+        $renderer = new Renderer($lang);
         $this->assertEquals($out, $renderer->render($tpl));
     }
 
@@ -272,7 +203,7 @@ class RendererTest extends \PHPUnit_Framework_TestCase
     function testRenderEscapedBracesInsideTagInvalid()
     {
         $renderer = new Renderer;
-        $this->setExpectedException("Tempe\ParseException");
+        $this->setExpectedException("Tempe\Exception\Parse");
         $renderer->render("{{do {{; }}");
     }
 

@@ -1,14 +1,29 @@
 <?php
 namespace Tempe;
 
-use Tempe\Renderer;
-
 class Parser
 {
     const M_STRING = 1;
     const M_TAG = 2;
 
-    public static $identifierPattern = '[a-zA-Z\d_]([a-zA-Z_\/\.\-\d]*[a-zA-Z\d])*';
+    private $patternTag;
+    private $lang;
+
+    function __construct(Lang $lang=null) 
+    {
+        $this->lang = $lang;
+
+        $identifier = "[a-zA-Z_\/\.\-\d]+";
+        $this->patternTag = "
+            /^ 
+                (?: (?P<oid> ".$identifier." ): )? 
+                (?P<ochain> 
+                    (?: \s* ".$identifier." \s* )+ 
+                    (?: \| (?: \s* ".$identifier." \s* )+ )*
+                )?
+            $/x
+        ";
+    }
 
     function tokenise($in)
     {
@@ -25,7 +40,7 @@ class Parser
             $tokens = $this->tokenise($tokens);
 
         $line = 1;
-        $tree = (object)['t'=>Renderer::P_ROOT, 'c'=>[], 'l'=>$line];
+        $tree = (object)['type'=>Renderer::P_ROOT, 'id'=>null, 'nodes'=>[], 'line'=>$line];
         $node = $tree;
         $stack = [$node];
         $stackIdx = 0;
@@ -50,12 +65,12 @@ class Parser
             case self::M_STRING:
                 if ($current == '{;' || $current == '{{' || $current == '{{/' || $current == '{{#') {
                     if ($buffer) {
-                        $node->c[] = (object)['t'=>Renderer::P_STRING, 'v'=>$buffer, 'l'=>$bufferLine];
+                        $node->nodes[] = (object)['type'=>Renderer::P_STRING, 'v'=>$buffer, 'line'=>$bufferLine];
                         $bufferLine = $line;
                     }
                     if ($current == '{;') {
                         $buffer = '';
-                        $node->c[] = (object)['t'=>Renderer::P_ESC, 'l'=>$line, 'v'=>$current];
+                        $node->nodes[] = (object)['type'=>Renderer::P_ESC, 'v'=>$current, 'line'=>$line];
                     }
                     else {
                         $buffer = "";
@@ -70,80 +85,58 @@ class Parser
 
             case self::M_TAG:
                 switch ($current) {
+                
+                // MUST keep this case in sync with the tokens from the tokeniser
                 case '{;': case '{{': case '{{#': case '{{/':
-                    throw new ParseException("Unexpected $current at line $line");
+                    throw new Exception\Parse("Unexpected $current at line $line");
                 break;
 
+                // OK we have the whole tag, now subparse it.
                 case '}}':
                     $tagString = "{{{$tagType}{$buffer}}}";
+                    $newNode = null;
 
-                    $chain = [];
-                    foreach (explode('|', $buffer) as $call) {
-                        if (preg_match('~^
-                            \s*
-                            (
-                            (?P<handler>'.static::$identifierPattern.')
-                            (\s+(?P<key>\@?'.static::$identifierPattern.'))?
-                            )?
-                            \s*~x',
-                            $call,
-                            $cm)
-                        ) {
-                            if (isset($cm['handler']))
-                                $chain[] = (object)['h'=>$cm['handler'], 'k'=>isset($cm['key']) ? $cm['key'] : null];
+                    // create a new node if it's not a block close
+                    if ($tagType != '/') {
+                        $newNode = $this->createNode($tagString, $tagType, $buffer, $bufferLine);
+                    }
+
+                    { // stack handling
+                        if ($tagType == '#') {
+                            $newNode->nodes = [];
+                            $newNode->vo = $tagString;
+
+                            $node = $node->nodes[] = $newNode;
+                            $stack[++$stackIdx] = $node;
+                        }
+                        elseif ($tagType == '/') {
+                            // validate only: it's a block close tag
+                            if ($node->type != Renderer::P_BLOCK)
+                                throw new Exception\Parse("Block close found, but no block open", $line);
+
+                            $id = trim($buffer);
+                            if (($node->id || $id) && $node->id != $id)
+                                throw new Exception\Parse("Block close mismatch. Expected '{$node->id}', found '$id'", $line);
+                            $node->vc = $tagString;
+                            $node = $stack[--$stackIdx];
+
                         }
                         else {
-                            throw new ParseException("Invalid call '{$call}' on line {$bufferLine}");
-                        }
-                    }
+                            $newNode->v = $tagString;
+                            $node->nodes[] = $newNode;
 
-                    if ($tagType == '#') {
-                        $node = $node->c[] = (object)[
-                            't'=>Renderer::P_BLOCK, 'hc'=>$chain,
-                            'c'=>[], 'l'=>$bufferLine, 'vo'=>$tagString,
-                        ];
-                        $stack[++$stackIdx] = $node;
-                    }
-                    elseif ($tagType == '/') {
-                        if ($node->t != Renderer::P_BLOCK)
-                            throw new ParseException();
-
-                        $node->vc = $tagString;
-
-                        if ($node->hc) {
-                            $open = $node->hc[0];
-                            $close = isset($chain[0]) ? $chain[0] : null;
-                            if (isset($chain[1]))
-                                throw new ParseException("Only the first handler is valid in block close on line {$line}");
-
-                            if (!$close) {
-                                throw new ParseException(
-                                    "Handler close mismatch on line {$line}. Expected {$open->h}, found (unnamed)"
-                                );
-                            }
-                            elseif ($open->h != $close->h) {
-                                throw new ParseException(
-                                    "Handler close mismatch on line {$line}. Expected {$open->h}, found {$close->h}"
-                                );
-                            }
-                            if ($close->k && $close->k != $open->k) {
-                                throw new ParseException(
-                                    "Handler key close mismatch on line {$line}. Expected {$open->k}, found {$close->k}"
-                                );
+                            if ($this->lang) {
+                                foreach ($newNode->chain as $pos=>$handler)
+                                    $this->lang->check($handler, $newNode, $pos);
                             }
                         }
+                    }
 
-                        $node = $stack[--$stackIdx];
+                    { // cleanup
+                        $buffer = '';
+                        $bufferLine = $line;
+                        $currentMode = self::M_STRING;
                     }
-                    else {
-                        $node->c[] = (object)[
-                            't'=>Renderer::P_VALUE, 'hc'=>$chain, 
-                            'l'=>$bufferLine, 'v'=>$tagString,
-                        ];
-                    }
-                    $buffer = '';
-                    $bufferLine = $line;
-                    $currentMode = self::M_STRING;
                 break;
 
                 default:
@@ -156,17 +149,60 @@ class Parser
         }
 
         if ($currentMode == self::M_TAG)
-            throw new ParseException("Tag close mismatch, open was on line $bufferLine");
+            throw new Exception\Parse("Tag close mismatch (opened on line $bufferLine)");
         if ($node != $tree)
-            throw new ParseException("Unclosed block ".(isset($node->hc[0]) ? "'{$node->hc[0]->h}({$node->hc[0]->k})'" : "(unnamed)" )." on line {$node->l}");
+            throw new Exception\Parse("Unclosed block '".($node->id ?: "(unnamed)")."'", $node->line);
 
         if ($buffer) {
-            $node->c[] = (object)[
-                't'=>Renderer::P_STRING, 'v'=>$buffer, 'l'=>$bufferLine,
+            $node->nodes[] = (object)[
+                'type'=>Renderer::P_STRING, 'v'=>$buffer, 'line'=>$bufferLine,
             ];
         }
 
         return $tree;
+    }
+
+    private function createNode($tagString, $tagType, $buffer, $bufferLine)
+    {
+        $newNode = (object)[
+            'type' => ($tagType == '/' || $tagType == '#') 
+                ? Renderer::P_BLOCK 
+                : Renderer::P_VALUE,
+            'line' => $bufferLine,
+            'id' => null,
+            'chain' => [],
+        ];
+
+        $ok = preg_match($this->patternTag, trim($buffer), $m);
+        
+        // Unfortunately, this sacrifices the quality of the error for
+        // parsing speed. Maybe there's a middle ground.
+        if (!$ok)
+            throw new Exception\Parse('Invalid tag: '.$tagString, $bufferLine);
+
+        if (isset($m['oid']))
+            $newNode->id = $m['oid'];
+
+        if (isset($m['ochain'])) {
+            $tok = preg_split('~(?: \s* (\|) \s* | \s+ )~x', $m['ochain'], null, PREG_SPLIT_DELIM_CAPTURE | PREG_SPLIT_NO_EMPTY);
+            $tok[] = null;
+
+            $h = null;
+            $a = [];
+            $c = 0;
+
+            foreach ($tok as $t) {
+                if ($t == '|' || $t == null) {    
+                    $newNode->chain[] = ['handler'=>$h, 'args'=>$a, 'argc'=>$c];
+                    $h = null;
+                    $a = [];
+                    $c = 0;
+                }
+                elseif (!$h) { $h = $t; } else { $a[] = $t; ++$c; }
+            } 
+        }
+
+        return $newNode;
     }
 
     function unparse($tree)
@@ -177,18 +213,21 @@ class Parser
         $out = '';
         $stackNode = $stack[$stackIdx];
         while (true) {
-            $current = isset($stackNode->n->c[$stackNode->i]) ? $stackNode->n->c[$stackNode->i] : null;
+            $current = isset($stackNode->n->nodes[$stackNode->i]) 
+                ? $stackNode->n->nodes[$stackNode->i] 
+                : null
+            ;
             if (!$current) {
                 if ($stackIdx <= 0)
                     break;
                 
-                if ($stackNode->n->t == Renderer::P_BLOCK)
+                if ($stackNode->n->type == Renderer::P_BLOCK)
                     $out .= $stackNode->n->vc;
                 $stackNode = $stack[--$stackIdx];
             }
             else {
                 ++$stackNode->i;
-                switch ($current->t) {
+                switch ($current->type) {
                     case Renderer::P_BLOCK:
                         $stackNode = $stack[++$stackIdx] = (object)['n'=>$current, 'i'=>0];
                         $out .= $current->vo;
@@ -201,7 +240,7 @@ class Parser
                     break;
 
                     default:
-                        throw new \Exception("Cannot unparse ".Helper::tokenName($current->t)."({$current->t})");
+                        throw new \Exception("Cannot unparse ".Helper::tokenName($current->type)."({$current->type})");
                 }
             }
         }
@@ -209,7 +248,3 @@ class Parser
         return $out;
     }
 }
-
-class ParseException extends \RuntimeException
-{}
-

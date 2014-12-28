@@ -5,26 +5,18 @@ use Tempe\Ext;
 
 class AcceptanceTest extends \PHPUnit_Framework_TestCase
 {
-    function testEachUnsetAllowed()
-    {
-        $tpl = "{{#each foo}}yep{{/each}}";
-        $r = $this->getRenderer(new \Tempe\Ext\Lang(['allowUnsetKeys'=>true]));
-        $vars = [];
-        $this->assertEquals("", $r->render($tpl, $vars));
-    }
-
     function testEachUnsetNotAllowed()
     {
-        $tpl = "{{#each foo}}yep{{/each}}";
-        $r = $this->getRenderer(new \Tempe\Ext\Lang(['allowUnsetKeys'=>false]));
+        $tpl = "{{# each foo }}yep{{/}}";
+        $r = $this->getRenderer();
         $vars = [];
-        $this->setExpectedException("Tempe\RenderException", "Unknown variable foo");
+        $this->setExpectedException("Tempe\Exception\Render", "Unknown variable foo");
         $r->render($tpl, $vars);
     }
 
     function testEachAssocArray()
     {
-        $tpl = "{{#each foo}}{{= a1}} {{= a2}}\n{{/each}}";
+        $tpl = "{{#each foo}}{{ var a1 }} {{var a2}}\n{{/}}";
         $expected = "foo bar\nbaz qux\n";
         $initialVars = $vars = [
             'foo'=>[
@@ -41,7 +33,7 @@ class AcceptanceTest extends \PHPUnit_Framework_TestCase
 
     function testEachNumericArray()
     {
-        $tpl = "{{#each foo}}{{= 0}} {{= 1}}\n{{/each}}";
+        $tpl = "{{#each foo}}{{var 0}} {{var 1}}\n{{/}}";
         $expected = "foo bar\nbaz qux\n";
         $initialVars = $vars = [
             'foo'=>[
@@ -58,7 +50,7 @@ class AcceptanceTest extends \PHPUnit_Framework_TestCase
 
     function testEachMetaVars()
     {
-        $tpl = "{{#each foo}}{{= @idx}}|{{= @num }}) {{= @key}} => {{= @value}}\n{{/each}}";
+        $tpl = "{{#each foo}}{{var _idx_}}|{{var _num_ }}) {{var _key_}} => {{var _value_}}\n{{/}}";
         $expected = "0|1) a => foo\n1|2) b => bar\n2|3) c => baz\n";
         $initialVars = $vars = [
             'foo'=>[
@@ -76,7 +68,7 @@ class AcceptanceTest extends \PHPUnit_Framework_TestCase
 
     function testBlock()
     {
-        $tpl = "{{#block hello}}world{{/block}}{{= hello}}";
+        $tpl = "{{#block hello}}world{{/}}{{var hello}}";
         $expected = "world";
         $r = $this->getRenderer();
         $this->assertEquals($expected, $r->render($tpl, $vars));
@@ -86,7 +78,7 @@ class AcceptanceTest extends \PHPUnit_Framework_TestCase
     /** @depends testBlock */
     function testBlockNoKeyFilters()
     {
-        $tpl = "{{#block | strtoupper}}world{{/block}}";
+        $tpl = "{{#block | strtoupper}}world{{/}}";
         $expected = "WORLD";
         $r = $this->getRenderer();
         $r->filters['strtoupper'] = 'strtoupper';
@@ -97,7 +89,7 @@ class AcceptanceTest extends \PHPUnit_Framework_TestCase
     /** @depends testBlock */
     function testBlockKeyIgnoresFilters()
     {
-        $tpl = "{{#block hello | strtoupper}}world {{= foo}}{{/block}}{{= hello}}";
+        $tpl = "{{#block hello | strtoupper}}world {{var foo}}{{/}}{{var hello}}";
         $expected = "world pants";
         $r = $this->getRenderer();
         $r->filters['strtoupper'] = 'strtoupper';
@@ -109,7 +101,7 @@ class AcceptanceTest extends \PHPUnit_Framework_TestCase
     /** @depends testBlock */
     function testBlockNoKeyNoFilters()
     {
-        $tpl = "{{#block}}world{{/block}}";
+        $tpl = "{{#block}}world{{/}}";
         $expected = "world";
         $r = $this->getRenderer();
         $this->assertEquals($expected, $r->render($tpl, $vars));
@@ -119,7 +111,7 @@ class AcceptanceTest extends \PHPUnit_Framework_TestCase
     /** @depends testBlock */
     function testBlockOverwrites()
     {
-        $tpl = "{{#block hello}}world{{/block}}{{#block hello}}pants{{/block}}{{= hello}}";
+        $tpl = "{{#block hello}}world{{/}}{{#block hello}}pants{{/}}{{var hello}}";
         $expected = "pants";
         $r = $this->getRenderer();
         $this->assertEquals($expected, $r->render($tpl, $vars));
@@ -129,7 +121,7 @@ class AcceptanceTest extends \PHPUnit_Framework_TestCase
     /** @depends testBlock */
     function testBlockInsideEachDoesntEscape()
     {
-        $tpl = "In: {{#each foo}}{{#block hello}}world{{/block}}{{= hello}}{{/each}}, Out: {{= hello }}";
+        $tpl = "In: {{#each foo}}{{#block hello}}world{{/}}{{var hello}}{{/}}, Out: {{var hello }}";
         $expected = "In: worldworld, Out: ";
         $initialVars = $vars = [
             'foo'=>['a'=>'foo', 'b'=>'bar'],
@@ -143,7 +135,7 @@ class AcceptanceTest extends \PHPUnit_Framework_TestCase
 
     function testPushAssocArray()
     {
-        $tpl = "{{#push foo}}{{= bar }}{{/push}} {{= bar }}";
+        $tpl = "{{#push foo}}{{var bar }}{{/push}} {{var bar }}";
         $expected = "inner outer";
         $initialVars = $vars = [
             'foo'=>['bar'=>'inner'],
@@ -156,7 +148,7 @@ class AcceptanceTest extends \PHPUnit_Framework_TestCase
 
     function testPushNumericArray()
     {
-        $tpl = "{{#push foo}}{{= 0}} {{= 1}}{{/push}}";
+        $tpl = "{{#push foo}}{{var 0}} {{var 1}}{{/push}}";
         $expected = "bar baz";
         $initialVars = $vars = [
             'foo'=>['bar', 'baz'],
@@ -168,23 +160,14 @@ class AcceptanceTest extends \PHPUnit_Framework_TestCase
 
     function testPushUnsetAllowed()
     {
-        $tpl = "{{#push foo}}yep{{/push}}";
-        $r = $this->getRenderer(new \Tempe\Ext\Lang(['allowUnsetKeys'=>true]));
+        $tpl = "{{#push foo}}yep{{/}}";
+        $r = $this->getRenderer(new \Tempe\Ext\Lang());
         $vars = [];
-        $this->assertEquals("", $r->render($tpl, $vars));
-    }
-
-    function testPushUnsetNotAllowed()
-    {
-        $tpl = "{{#push foo}}yep{{/push}}";
-        $r = $this->getRenderer(new \Tempe\Ext\Lang(['allowUnsetKeys'=>false]));
-        $vars = [];
-        $this->setExpectedException("Tempe\RenderException", "Unknown variable foo");
-        $r->render($tpl, $vars);
+        $this->assertEquals("yep", $r->render($tpl, $vars));
     }
 
     private function getRenderer($ext=null)
     {
-        return new \Tempe\Renderer([$ext ?: new Ext\Lang]);
+        return new \Tempe\Renderer(\Tempe\Lang\Factory::createBasic());
     }
 }

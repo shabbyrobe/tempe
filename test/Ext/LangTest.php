@@ -50,7 +50,7 @@ class LangTest extends \PHPUnit_Framework_TestCase
     {
         $c = new Ext\Lang(['allowUnsetKeys'=>false]);
         $vars = [];
-        $this->setExpectedException('Tempe\RenderException', 'Unknown variable foo');
+        $this->setExpectedException('Tempe\Exception\Render', 'Unknown variable foo');
         $result = $c->valueHandlers['=']($vars, 'foo');
     }
 }

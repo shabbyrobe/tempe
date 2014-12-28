@@ -16,34 +16,34 @@ class ParserTest extends \PHPUnit_Framework_TestCase
     {
         $tpl = "foo bar baz";
         $tree = $this->parser->parse($tpl);
-        $this->assertCount(1, $tree->c);
-        $strNode = $tree->c[0];
+        $this->assertCount(1, $tree->nodes);
+        $strNode = $tree->nodes[0];
 
-        $this->assertEquals(Renderer::P_STRING, $strNode->t);
+        $this->assertEquals(Renderer::P_STRING, $strNode->type);
         $this->assertEquals("foo bar baz", $strNode->v);
-        $this->assertEquals(1, $strNode->l);
+        $this->assertEquals(1, $strNode->line);
     }
 
     function testParseStrings()
     {
-        $tpl = "foo\nbar\n{{=}}\nbaz\n";
+        $tpl = "foo\nbar\n{{}}\nbaz\n";
         $tree = $this->parser->parse($tpl);
-        $this->assertCount(3, $tree->c);
+        $this->assertCount(3, $tree->nodes);
 
-        $node = $tree->c[0];
-        $this->assertEquals(Renderer::P_STRING, $node->t);
+        $node = $tree->nodes[0];
+        $this->assertEquals(Renderer::P_STRING, $node->type);
         $this->assertEquals("foo\nbar\n", $node->v);
-        $this->assertEquals(1, $node->l);
+        $this->assertEquals(1, $node->line);
 
-        $node = $tree->c[1];
-        $this->assertEquals(Renderer::P_VALUE, $node->t);
-        $this->assertEquals("{{=}}", $node->v);
-        $this->assertEquals(3, $node->l);
+        $node = $tree->nodes[1];
+        $this->assertEquals(Renderer::P_VALUE, $node->type);
+        $this->assertEquals("{{}}", $node->v);
+        $this->assertEquals(3, $node->line);
 
-        $node = $tree->c[2];
-        $this->assertEquals(Renderer::P_STRING, $node->t);
+        $node = $tree->nodes[2];
+        $this->assertEquals(Renderer::P_STRING, $node->type);
         $this->assertEquals("\nbaz\n", $node->v);
-        $this->assertEquals(3, $node->l);
+        $this->assertEquals(3, $node->line);
     }
 
     function testWhitespaceValue()
@@ -51,9 +51,9 @@ class ParserTest extends \PHPUnit_Framework_TestCase
         $tpl = "{{  \t\t\n\n}}";
         $tree = $this->parser->parse($tpl);
         $expected = [
-            ['t'=>Renderer::P_VALUE, 'l'=>1, 'v'=>$tpl, 'hc'=>null],
+            ['type'=>Renderer::P_VALUE, 'line'=>1, 'v'=>$tpl, 'chain'=>null],
         ];
-        $this->assertNodes($expected, $tree->c);
+        $this->assertNodes($expected, $tree->nodes);
         $this->assertEquals($tpl, $this->parser->unparse($tree));
     }
 
@@ -63,14 +63,14 @@ class ParserTest extends \PHPUnit_Framework_TestCase
         $tree = $this->parser->parse($tpl);
         $expected = [
             [
-                'l'=>1,
-                't'=>Renderer::P_BLOCK,
+                'line'=>1,
+                'type'=>Renderer::P_BLOCK,
                 'vo'=>"{{#  \t\t\n\n}}",
                 "vc"=>"{{/\n\n\t\t  }}",
-                'hc'=>null,
+                'chain'=>null,
             ],
         ];
-        $this->assertNodes($expected, $tree->c);
+        $this->assertNodes($expected, $tree->nodes);
         $this->assertEquals($tpl, $this->parser->unparse($tree));
     }
 
@@ -79,9 +79,9 @@ class ParserTest extends \PHPUnit_Framework_TestCase
         $tpl = "{{}}";
         $tree = $this->parser->parse($tpl);
         $expected = [
-            ['t'=>Renderer::P_VALUE, 'l'=>1, 'v'=>$tpl, 'hc'=>null],
+            ['type'=>Renderer::P_VALUE, 'line'=>1, 'v'=>$tpl, 'chain'=>null],
         ];
-        $this->assertNodes($expected, $tree->c);
+        $this->assertNodes($expected, $tree->nodes);
         $this->assertEquals($tpl, $this->parser->unparse($tree));
     }
 
@@ -91,47 +91,53 @@ class ParserTest extends \PHPUnit_Framework_TestCase
         $tree = $this->parser->parse($tpl);
         $expected = [
             [
-                't'=>Renderer::P_BLOCK, 'l'=>1, 'vo'=>'{{#}}', 'vc'=>'{{/}}', 'hc'=>null
+                'type'=>Renderer::P_BLOCK, 'line'=>1, 'vo'=>'{{#}}', 'vc'=>'{{/}}', 'chain'=>null
             ],
         ];
-        $this->assertNodes($expected, $tree->c);
+        $this->assertNodes($expected, $tree->nodes);
         $this->assertEquals($tpl, $this->parser->unparse($tree));
     }
 
     function testParseUnclosedTagFails()
     {
-        $this->setExpectedException("Tempe\ParseException", "Tag close mismatch, open was on line 1");
+        $this->setExpectedException("Tempe\Exception\Parse", "Tag close mismatch (opened on line 1)");
         $tree = $this->parser->parse('{{foo}}{{notclosed');
     }
 
     function testParseUnmatchedBlockFails()
     {
-        $this->setExpectedException("Tempe\ParseException", "Unclosed block 'pants()' on line 1");
+        $this->setExpectedException("Tempe\Exception\Parse", "Unclosed block '(unnamed)' at line 1");
         $tree = $this->parser->parse('{{# pants}}');
     }
 
-    function testParseUnmatchedBlockWithKeyFails()
+    function testParseUnclosedNamedBlockFails()
     {
-        $this->setExpectedException("Tempe\ParseException", "Unclosed block 'pants(key)' on line 1");
-        $tree = $this->parser->parse('{{# pants key}}');
+        $this->setExpectedException("Tempe\Exception\Parse", "Unclosed block 'name' at line 1");
+        $tree = $this->parser->parse('{{# name: pants}}');
     }
 
-    function testParseUnmatchedNestedBlockFails()
+    function testParseUnmatchedNamedBlockFails()
     {
-        $this->setExpectedException("Tempe\ParseException", "Unclosed block 'trou()' on line 2");
-        $tree = $this->parser->parse("{{# pants key}}\n{{# trou}}");
+        $this->setExpectedException("Tempe\Exception\Parse", "Block close mismatch. Expected 'name', found 'nope' at line 1");
+        $tree = $this->parser->parse('{{# name: pants}}{{/ nope }}');
+    }
+
+    function testParseUnclosedNestedBlockFails()
+    {
+        $this->setExpectedException("Tempe\Exception\Parse", "Unclosed block 'trou' at line 2");
+        $tree = $this->parser->parse("{{# pants: test }}\n{{# trou: test }}");
     }
 
     function testParseEscape()
     {
         $tree = $this->parser->parse('{;');
-        $expected = [(object)['t'=>Renderer::P_ESC, 'v'=>'{;']];
-        $this->assertNodes($expected, $tree->c);
+        $expected = [(object)['type'=>Renderer::P_ESC, 'v'=>'{;']];
+        $this->assertNodes($expected, $tree->nodes);
     }
 
     function testParseEscapeAfterUnescapedBraceFails()
     {
-        $this->setExpectedException("Tempe\ParseException", "Tag close mismatch, open was on line 1");
+        $this->setExpectedException("Tempe\Exception\Parse", "Tag close mismatch (opened on line 1)");
         $tree = $this->parser->parse('{{;');
     }
 
@@ -139,20 +145,20 @@ class ParserTest extends \PHPUnit_Framework_TestCase
     {
         $tree = $this->parser->parse('{;{;');
         $expected = [
-            ['t'=>Renderer::P_ESC, 'v'=>'{;'],
-            ['t'=>Renderer::P_ESC, 'v'=>'{;'],
+            ['type'=>Renderer::P_ESC, 'v'=>'{;'],
+            ['type'=>Renderer::P_ESC, 'v'=>'{;'],
         ];
-        $this->assertNodes($expected, $tree->c);
+        $this->assertNodes($expected, $tree->nodes);
     }
 
     function testParseEscapeFollowedByTag()
     {
-        $tree = $this->parser->parse('{;{{=}}');
+        $tree = $this->parser->parse('{;{{}}');
         $expected = [
-            ['t'=>Renderer::P_ESC, 'v'=>'{;'],
-            ['t'=>Renderer::P_VALUE, 'v'=>'{{=}}'],
+            ['type'=>Renderer::P_ESC, 'v'=>'{;'],
+            ['type'=>Renderer::P_VALUE, 'v'=>'{{}}'],
         ];
-        $this->assertNodes($expected, $tree->c);
+        $this->assertNodes($expected, $tree->nodes);
     }
 
     function assertNodes($expected, $nodes)
@@ -161,11 +167,11 @@ class ParserTest extends \PHPUnit_Framework_TestCase
         $msg = '';
         if (!$valid) {
             ob_start();
-            Helper::dumpTree((object)['t'=>Renderer::P_ROOT, 'c'=>$expected]);
+            Helper::dumpTree((object)['type'=>Renderer::P_ROOT, 'nodes'=>$expected]);
             $e = ob_get_clean();
 
             ob_start();
-            Helper::dumpTree((object)['t'=>Renderer::P_ROOT, 'c'=>$nodes]);
+            Helper::dumpTree((object)['type'=>Renderer::P_ROOT, 'nodes'=>$nodes]);
             $t = ob_get_clean();
 
             $d = new \SebastianBergmann\Diff\Differ;
@@ -186,17 +192,17 @@ class ParserTest extends \PHPUnit_Framework_TestCase
             $tNode = (object) $nodes[$idx];
 
             foreach (get_object_vars($eNode) as $k=>$v) {
-                if ($k=='c')
+                if ($k=='nodes')
                     continue;
                 if ($v != $tNode->$k)
                     goto oops;
             }
 
-            if (isset($eNode->c)) {
-                if (!isset($tNode->c) || !$this->compareTree($eNode->c, $tNode->c))
+            if (isset($eNode->nodes)) {
+                if (!isset($tNode->nodes) || !$this->compareTree($eNode->nodes, $tNode->nodes))
                     goto oops;
                 else
-                    $this->compareNodes($eNode->c, $tNode->c);
+                    $this->compareNodes($eNode->nodes, $tNode->nodes);
             }
         }
         return true;
@@ -210,76 +216,91 @@ class ParserTest extends \PHPUnit_Framework_TestCase
     function testParseValidValue($tpl, $expected)
     {
         $tree = $this->parser->parse($tpl);
-        $this->assertCount(1, $tree->c);
-        $node = $tree->c[0];
+        $this->assertCount(1, $tree->nodes);
+        $node = $tree->nodes[0];
 
-        $this->assertEquals(Renderer::P_VALUE, $node->t);
-        foreach ($expected as &$v)
-            $v = (object)$v;
-        $this->assertEquals($expected, $node->hc);
+        $this->assertEquals(Renderer::P_VALUE, $node->type);
+        $expected = $this->createExpectedHandlers($expected);
+        $this->assertEquals($expected, $node->chain);
     }
 
     function dataValidValues()
     {
         return [
-            ['{{h}}'                        , [['h'=>'h', 'k'=>null]]],
-            ['{{handler}}'                  , [['h'=>'handler', 'k'=>null]]],
-            ['{{ handler }}'                , [['h'=>'handler', 'k'=>null]]],
+            ['{{h}}'                            , ['h'] ],
+            ['{{handler}}'                      , ['handler'] ],
+            ['{{ handler }}'                    , ['handler'] ],
 
-            ['{{h k}}'                      , [['h'=>'h', 'k'=>'k']]],
-            ['{{handler key}}'              , [['h'=>'handler', 'k'=>'key']]],
-            ['{{ handler key }}'            , [['h'=>'handler', 'k'=>'key']]],
-            ['{{ handler  key }}'           , [['h'=>'handler', 'k'=>'key']]],
+            ['{{h k}}'                          , [['h', ['k']]] ],
+            ['{{handler key}}'                  , [['handler', ['key']]] ],
+            ['{{ handler key }}'                , [['handler', ['key']]] ],
+            ['{{ handler  key }}'               , [['handler', ['key']]] ],
 
-            ["{{handler|handler2}}"         , [['h'=>'handler', 'k'=>null], ['h'=>'handler2', 'k'=>null]]],
-            ["{{handler|handler2}}"         , [['h'=>'handler', 'k'=>null], ['h'=>'handler2', 'k'=>null]]],
-            ["{{handler|f}}"                , [['h'=>'handler', 'k'=>null], ['h'=>'f', 'k'=>null]]],
-            ["{{handler|f1|f1}}"            , [['h'=>'handler', 'k'=>null], ['h'=>'f1', 'k'=>null], ['h'=>'f1', 'k'=>null]]],
+            ["{{handler|handler}}"              , ['handler', 'handler'] ],
+            ["{{handler|handler2}}"             , ['handler', 'handler2'] ],
+            ["{{handler | handler}}"            , ['handler', 'handler'] ],
+            ["{{h1|h2|h3}}"                     , ['h1', 'h2', 'h3'] ],
+            ["{{h1 |  h2    |     h3}}"         , ['h1', 'h2', 'h3'] ],
+            ["{{h1\t|\t \th2\t\n |\t\n \n h3}}" , ['h1', 'h2', 'h3'] ],
 
-            ["{{handler|f1|f2}}"            , [['h'=>'handler', 'k'=>null], ['h'=>'f1', 'k'=>null], ['h'=>'f2', 'k'=>null]]],
-            ["{{handler|f1  |  f2}}"        , [['h'=>'handler', 'k'=>null], ['h'=>'f1', 'k'=>null], ['h'=>'f2', 'k'=>null]]],
-            ["{{handler|f1 a1}}"            , [['h'=>'handler', 'k'=>null], ['h'=>'f1', 'k'=>'a1']]],
-            ["{{handler|f1 a1|f2 a2}}"      , [['h'=>'handler', 'k'=>null], ['h'=>'f1', 'k'=>'a1'], ['h'=>'f2', 'k'=>'a2']]],
-
-            // fluff that supports the Lang extension
-            ['{{handler @key}}'             , [['h'=>'handler', 'k'=>'@key']]],
+            ["{{handler|f1 a1}}"                , ['handler', ['f1', ['a1']]] ],
+            ["{{handler|f1 a1|f2 a2}}"          , ['handler', ['f1', ['a1']], ['f2', ['a2']]] ],
+            ["{{handler|f1  a1  b1   c1}}"      , ['handler', ['f1', ['a1', 'b1', 'c1']]] ],
+            ["{{handler|f1 a1 b1|f2 a2 b2}}"    , ['handler', ['f1', ['a1', 'b1']], ['f2', ['a2', 'b2']]] ],
         ];
+    }
+
+    private function createExpectedHandlers($handlerShorthand)
+    {
+        $expected = [];
+        foreach ($handlerShorthand as $v) {
+            $v = (array)$v;
+            $h = ['handler'=>$v[0], 'args'=>[], 'argc'=>0];
+            if (isset($v[1])) {
+                $h['args'] = $v[1];
+                $h['argc'] = count($v[1]);
+            }
+            $expected[] = $h;
+        }
+        return $expected;
     }
 
     /**
      * @dataProvider dataValidBlocks
      */
-    function testParseValidBlock($tpl, $expected)
+    function testParseValidBlock($tpl, $id, $handlers)
     {
         $tree = $this->parser->parse($tpl);
-        $this->assertCount(1, $tree->c);
-        $node = $tree->c[0];
+        $this->assertCount(1, $tree->nodes);
+        $node = $tree->nodes[0];
 
-        $this->assertEquals(Renderer::P_BLOCK, $node->t);
-        foreach ($expected as &$v) {
-            $v = (object)$v;
-            if (!isset($v->k)) $v->k = null;
-        }
+        $this->assertEquals(Renderer::P_BLOCK, $node->type);
+        $expected = $this->createExpectedHandlers($handlers);
 
-        $this->assertEquals($expected, $node->hc);
+        $this->assertEquals($id, $node->id);
+        $this->assertEquals($expected, $node->chain);
 
-        $this->assertCount(1, $node->c);
-        $strNode = $node->c[0];
-        $this->assertEquals(Renderer::P_STRING, $strNode->t);
+        $this->assertCount(1, $node->nodes);
+        $strNode = $node->nodes[0];
+        $this->assertEquals(Renderer::P_STRING, $strNode->type);
     }
 
     function dataValidBlocks()
     {
         return [
-            ['{{#handler}} {{/handler}}'             , [['h'=>'handler']]],
-            ['{{# handler }} {{/ handler }}'         , [['h'=>'handler']]],
-            ['{{# handler key}} {{/ handler }}'      , [['h'=>'handler', 'k'=>'key']]],
-            ['{{# handler key}} {{/ handler key }}'  , [['h'=>'handler', 'k'=>'key']]],
-            ['{{# handler key }} {{/ handler key}}'  , [['h'=>'handler', 'k'=>'key']]],
-            ['{{#handler|f1|f2}} {{/handler}}'       , [['h'=>'handler'], ['h'=>'f1'], ['h'=>'f2']]],
-            ['{{#handler key|f1|f2}} {{/handler}}'   , [['h'=>'handler', 'k'=>'key'], ['h'=>'f1'], ['h'=>'f2']]],
-            ['{{#h key|f1 a1|f2 a2}} {{/h}}'         , [['h'=>'h', 'k'=>'key'], ['h'=>'f1', 'k'=>'a1'], ['h'=>'f2', 'k'=>'a2']]],
-            ['{{#h key  |f1  |  f2   a2  }} {{/h}}'  , [['h'=>'h', 'k'=>'key'], ['h'=>'f1'], ['h'=>'f2', 'k'=>'a2']]],
+            ['{{#handler}} {{/}}'                    , null  , ['handler'] ],
+            ['{{# handler }} {{/ }}'                 , null  , ['handler'] ],
+            ['{{# handler key}} {{/ }}'              , null  , [['handler', ['key']]] ],
+            ['{{# handler key1 key2}} {{/ }}'        , null  , [['handler', ['key1', 'key2']]] ],
+            ['{{#name:handler }} {{/name}}'           , 'name', ['handler'] ],
+            ['{{# name: handler }} {{/ name }}'       , 'name', ['handler'] ],
+            ['{{#}} {{/}}'                            , null  , [] ],
+            ['{{# }} {{/}}'                           , null  , [] ],
+            ['{{#name: }} {{/name}}'                  , 'name', [] ],
+            ['{{#handler|f1|f2}} {{/}}'              , null  , ['handler', 'f1', 'f2'] ],
+            ['{{#handler key|f1|f2}} {{/}}'          , null  , [['handler', ['key']], 'f1', 'f2'] ],
+            ['{{#h key|f1 a1|f2 a2}} {{/}}'          , null  , [['h', ['key']], ['f1', ['a1']], ['f2', ['a2']]] ],
+            ['{{#h key  |f1  |  f2   a2  }} {{/}}'   , null  , [['h', ['key']], 'f1', ['f2', ['a2']]] ],
         ];
     }
 
@@ -310,44 +331,48 @@ class ParserTest extends \PHPUnit_Framework_TestCase
         return $tests;
     }
 
-    function testParseInvalidBlockHandlerCloseWithFilters()
+    function testParseUnnamedBlockWithNamedCloseFails()
     {
-        $tpl = "{{# block }} {{/ block | doesnt | work}}";
+        $tpl = "{{# block }} {{/ block }}";
         $this->setExpectedException(
-            "Tempe\ParseException",
-            "Only the first handler is valid in block close on line 1"
+            "Tempe\Exception\Parse",
+            "Block close mismatch. Expected '', found 'block' at line 1"
         );
         $tree = $this->parser->parse($tpl);
     }
 
-    function testParseInvalidBlockHandlerCloseWithKeyAndFilters()
+    /**
+     * @dataProvider dataForNestedNamedBlocks
+     */
+    function testNestedNamed($tpl, $blocks, $str="test")
     {
-        $tpl = "{{# block foo}} {{/ block foo | doesnt | work}}";
-        $this->setExpectedException(
-            "Tempe\ParseException",
-            "Only the first handler is valid in block close on line 1"
-        );
         $tree = $this->parser->parse($tpl);
+        $node = $tree;
+        foreach ($blocks as $h) {
+            $this->assertCount(1, $node->nodes);
+            $this->assertEquals('b'.$h, $node->nodes[0]->id);
+            $this->assertEquals('h'.$h, $node->nodes[0]->chain[0]['handler']);
+            $node = $node->nodes[0];
+        }
+        $this->assertEquals($str, $node->nodes[0]->v);
     }
 
-    function testParseInvalidBlockHandlerClose()
+    function dataForNestedNamedBlocks()
     {
-        $tpl = "{{# block }} {{/ notblock }}";
-        $this->setExpectedException(
-            "Tempe\ParseException",
-            "Handler close mismatch on line 1. Expected block, found notblock"
-        );
-        $tree = $this->parser->parse($tpl);
-    }
+        $tests = [];
 
-    function testParseInvalidBlockHandlerKeyClose()
-    {
-        $tpl = "{{# block foo }} {{/ block bar }}";
-        $this->setExpectedException(
-            "Tempe\ParseException",
-            "Handler key close mismatch on line 1. Expected foo, found bar"
-        );
-        $tree = $this->parser->parse($tpl);
+        for ($i=2; $i<=5; $i++) {
+            $s = 'test';
+            $b = [];
+            for ($j=$i; $j>=1; $j--) {
+                $b[] = $j;
+                $s = "{{# b{$j}: h{$j}}}$s{{/b{$j}}}";
+            }
+
+            $tests[] = [$s, array_reverse($b)];
+        }
+
+        return $tests;
     }
 
     /**
@@ -358,11 +383,11 @@ class ParserTest extends \PHPUnit_Framework_TestCase
         $tree = $this->parser->parse($tpl);
         $node = $tree;
         foreach ($blocks as $h) {
-            $this->assertCount(1, $node->c);
-            $this->assertEquals($h, $node->c[0]->hc[0]->h);
-            $node = $node->c[0];
+            $this->assertCount(1, $node->nodes);
+            $this->assertEquals($h, $node->nodes[0]->chain[0]['handler']);
+            $node = $node->nodes[0];
         }
-        $this->assertEquals($str, $node->c[0]->v);
+        $this->assertEquals($str, $node->nodes[0]->v);
     }
 
     function dataForNestedBlocks()
@@ -374,7 +399,7 @@ class ParserTest extends \PHPUnit_Framework_TestCase
             $b = [];
             for ($j=$i; $j>=1; $j--) {
                 $b[] = "b{$j}";
-                $s = "{{#b{$j}}}$s{{/b{$j}}}";
+                $s = "{{#b{$j}}}$s{{/}}";
             }
 
             $tests[] = [$s, array_reverse($b)];

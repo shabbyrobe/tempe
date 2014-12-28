@@ -7,7 +7,10 @@ class BlockIfTest extends \PHPUnit_Framework_TestCase
 {
     function setUp()
     {
-        $this->renderer = $this->getMockBuilder('Tempe\Renderer')->setMethods(['render', 'renderTree'])->getMock();
+        $this->renderer = $this->getMockBuilder('Tempe\Renderer')
+            ->setMethods(['render', 'renderTree'])
+            ->setConstructorArgs([\Tempe\Lang\Factory::createBasic()])
+            ->getMock();
     }
 
     /** 
@@ -66,7 +69,6 @@ class BlockIfTest extends \PHPUnit_Framework_TestCase
     {
         $node = new \stdClass;
         $return = 'yes';
-        $this->renderer->addExtension($ext ?: new Ext\Lang);
         $this->renderer->expects($this->once())
             ->method('renderTree')
             ->with($node)
@@ -81,7 +83,6 @@ class BlockIfTest extends \PHPUnit_Framework_TestCase
     function runHiddenBlockTest($handler, $vars, $key, $ext=null)
     {
         $node = new \stdClass;
-        $this->renderer->addExtension($ext ?: new Ext\Lang);
         $this->renderer->expects($this->never())->method('renderTree');
         $this->assertEmpty(
             $this->renderer->blockHandlers[$handler]($vars, $key, $this->renderer, $node)

@@ -7,6 +7,8 @@ class PartialTest extends \PHPUnit_Framework_TestCase
 {
     function setUp()
     {
+        throw new \Exception();
+
         vfs\vfsStreamWrapper::setRoot(new vfs\vfsStreamDirectory('test'));
         $this->renderer = new \Tempe\Renderer();
         $this->renderer->addExtension(new \Tempe\Ext\Partial(['paths'=>['parts'=>"vfs://test"]]));
