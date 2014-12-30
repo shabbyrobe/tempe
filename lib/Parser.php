@@ -39,8 +39,9 @@ class Parser
 
     function parse($tokens)
     {
-        if (!is_array($tokens))
+        if (!is_array($tokens)) {
             $tokens = $this->tokenise($tokens);
+        }
 
         $line = 1;
         $tree = (object)[
@@ -67,8 +68,9 @@ class Parser
             $current = $tokens[$i++];
             $isNewline = ($current[0] == "\r" || $current[0] == "\n");
 
-            if ($isNewline)
+            if ($isNewline) {
                 ++$line;
+            }
 
             switch ($currentMode) {
             case self::M_STRING:
@@ -120,17 +122,19 @@ class Parser
                         }
                         elseif ($tagType == '/') {
                             // validate only: it's a block close tag
-                            if ($node->type != Renderer::P_BLOCK)
+                            if ($node->type != Renderer::P_BLOCK) {
                                 throw new Exception\Parse("Block close found, but no block open", $line);
-
+                            }
                             $id = trim($buffer);
-                            if (($node->id || $id) && $node->id != $id)
+                            if (($node->id || $id) && $node->id != $id) {
                                 throw new Exception\Parse("Block close mismatch. Expected '{$node->id}', found '$id'", $line);
+                            }
                             $node->vc = $tagString;
 
                             if ($this->lang) {
-                                foreach ($node->chain as $pos=>$handler)
+                                foreach ($node->chain as $pos=>$handler) {
                                     $this->lang->check($handler, $node, $pos);
+                                }
                             }
 
                             $node = $stack[--$stackIdx];
@@ -139,8 +143,9 @@ class Parser
                             $newNode->v = $tagString;
                             $node->nodes[] = $newNode;
                             if ($this->lang) {
-                                foreach ($newNode->chain as $pos=>$handler)
+                                foreach ($newNode->chain as $pos=>$handler) {
                                     $this->lang->check($handler, $newNode, $pos);
+                                }
                             }
                         }
                     }
@@ -161,11 +166,12 @@ class Parser
             }
         }
 
-        if ($currentMode == self::M_TAG)
+        if ($currentMode == self::M_TAG) {
             throw new Exception\Parse("Tag close mismatch (opened on line $bufferLine)");
-        if ($node != $tree)
+        }
+        if ($node != $tree) {
             throw new Exception\Parse("Unclosed block '".($node->id ?: "(unnamed)")."'", $node->line);
-
+        }
         if ($buffer) {
             $node->nodes[] = (object)[
                 'type'=>Renderer::P_STRING, 'v'=>$buffer, 'line'=>$bufferLine,
@@ -190,11 +196,12 @@ class Parser
         
         // Unfortunately, this sacrifices the quality of the error for
         // parsing speed. Maybe there's a middle ground.
-        if (!$ok)
+        if (!$ok) {
             throw new Exception\Parse('Invalid tag: '.$tagString, $bufferLine);
-
-        if (isset($m['oid']))
+        }
+        if (isset($m['oid'])) {
             $newNode->id = $m['oid'];
+        }
 
         if (isset($m['ochain'])) {
             $tok = preg_split('~(?: \s* (\|) \s* | \s+ )~x', $m['ochain'], null, PREG_SPLIT_DELIM_CAPTURE | PREG_SPLIT_NO_EMPTY);
@@ -231,29 +238,30 @@ class Parser
                 : null
             ;
             if (!$current) {
-                if ($stackIdx <= 0)
+                if ($stackIdx <= 0) {
                     break;
-                
-                if ($stackNode->n->type == Renderer::P_BLOCK)
+                }
+                if ($stackNode->n->type == Renderer::P_BLOCK) {
                     $out .= $stackNode->n->vc;
+                }
                 $stackNode = $stack[--$stackIdx];
             }
             else {
                 ++$stackNode->i;
                 switch ($current->type) {
-                    case Renderer::P_BLOCK:
-                        $stackNode = $stack[++$stackIdx] = (object)['n'=>$current, 'i'=>0];
-                        $out .= $current->vo;
-                    break;
+                case Renderer::P_BLOCK:
+                    $stackNode = $stack[++$stackIdx] = (object)['n'=>$current, 'i'=>0];
+                    $out .= $current->vo;
+                break;
 
-                    case Renderer::P_STRING:
-                    case Renderer::P_VALUE:
-                    case Renderer::P_ESC:
-                        $out .= $current->v;
-                    break;
+                case Renderer::P_STRING:
+                case Renderer::P_VALUE:
+                case Renderer::P_ESC:
+                    $out .= $current->v;
+                break;
 
-                    default:
-                        throw new \Exception("Cannot unparse ".Helper::tokenName($current->type)."({$current->type})");
+                default:
+                    throw new Exception\Parse("Cannot unparse ".Helper::nodeName($current->type)."({$current->type})");
                 }
             }
         }

@@ -244,12 +244,18 @@ class RendererTest extends \PHPUnit_Framework_TestCase
         $renderer = new Renderer;
         $this->assertEmpty($renderer->render($tpl));
     }
-}
 
-class TestFilter
-{
-    function __call($name, $args)
+    function testRenderOldVersionFails()
     {
-        return "$name({$args[0]})";
+        $node = (object)['version'=>1, 'nodes'=>[]];
+        $this->setExpectedException('InvalidArgumentException', 'Tree version 1 does not match expected version 2');
+        (new Renderer)->renderTree($node);
+    }
+
+    function testRenderNewVersionFails()
+    {
+        $node = (object)['version'=>99999, 'nodes'=>[]];
+        $this->setExpectedException('InvalidArgumentException', 'Tree version 99999 does not match expected version 2');
+        (new Renderer)->renderTree($node);
     }
 }

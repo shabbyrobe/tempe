@@ -25,13 +25,15 @@ class Core
 
         { // whitelisting & blacklisting
             if (isset($options['whitelist'])) {
-                if (isset($options['blacklist']))
+                if (isset($options['blacklist'])) {
                     throw new \InvalidArgumentException("Only specify whitelist or blacklist, not both");
+                }
 
                 $active = [];
                 foreach ($options['whitelist'] as $handler) {
-                    if (!isset($this->rules[$handler]))
+                    if (!isset($this->rules[$handler])) {
                         throw new \InvalidArgumentException("Unknown handler $handler");
+                    }
 
                     $active[$handler] = $this->rules[$handler];
                 }
@@ -40,8 +42,9 @@ class Core
             }
             elseif (isset($options['blacklist'])) {
                 foreach ($options['blacklist'] as $handler) {
-                    if (!isset($this->rules[$handler]))
+                    if (!isset($this->rules[$handler])) {
                         throw new \InvalidArgumentException("Unknown handler $handler");
+                    }
 
                     unset($this->rules[$handler]);
                 }
@@ -57,51 +60,50 @@ class Core
                 if ($key && $in !== '' && $in !== null) {
                     $scopeInput = true;
                     $scope = $in;
-                    if (!is_array($scope) && !$scope instanceof \ArrayAccess)
+                    if (!is_array($scope) && !$scope instanceof \ArrayAccess) {
                         throw new \Exception\Render("Input scope was not an array or ArrayAccess", $context->node->line);
+                    }
                 }
                 else {
                     $scope = $context->scope;
                 }
 
-                if ($in && !$key)
+                if ($in && !$key) {
                     $key = $in;
-
-                if (!array_key_exists($key, $scope))
+                }
+                if (!array_key_exists($key, $scope)) {
                     throw new Exception\Render("'var' could not find key '$key' in ".($scopeInput ? 'input' : 'context')." scope", $context->node->line);
-
+                }
                 return $scope[$key];
             };
         }
 
-        /*
-        if (isset($this->rules['dump'])) {
-            $this->handlers['dump'] = function($in, $context) {
-                ob_start();
-                var_dump($in);
-                return ob_get_clean();
-            };
-        }
-        */
-
         if (isset($this->rules['eqvar'])) {
             $this->handlers['eqvar'] = function($in, $context) {
                 $key = $context->args[0];
-                if (!array_key_exists($key, $context->scope))
+                if (!array_key_exists($key, $context->scope)) {
                     throw new Exception\Render("'eqvar' could not find key '$key' in scope", $context->node->line);
-                
+                }
                 $yep = is_object($in) 
                     ? $in == $context->scope[$key]
                     : $in === $context->scope[$key];
 
-                if ($yep)
-                    return $in;
+                if ($yep) {
+                    return true;
+                } else {
+                    $context->break = true;
+                }
             };
         }
 
         if (isset($this->rules['eqval'])) {
             $this->handlers['eqval'] = function($in, $context) {
-                return $in == $context->args[0] ? $in : null;
+                $yep = $in == $context->args[0];
+                if ($yep) {
+                    return true;
+                } else {
+                    $context->break = true;
+                }
             };
         }
 
@@ -114,10 +116,11 @@ class Core
         if (isset($this->rules['set'])) {
             $this->handlers['set'] = function($in, $context) {
                 $key = $context->args[0];
-                if ($context->chainPos == 0 && $context->node->type == \Tempe\Renderer::P_BLOCK)
+                if ($context->chainPos == 0 && $context->node->type == \Tempe\Renderer::P_BLOCK) {
                     $context->scope[$key] = $context->renderer->renderTree($context->node, $context->scope);
-                else
+                } else {
                     $context->scope[$key] = $in;
+                }
             };
         }
 
@@ -135,11 +138,12 @@ class Core
                     $iter = $context->scope[$key];
                 }
 
-                if (!$iter)
+                if (!$iter) {
                     return;
-
-                if (!is_array($iter) && !$iter instanceof \Traversable)
+                }
+                if (!is_array($iter) && !$iter instanceof \Traversable) {
                     throw new Exception\Render("'each' was not traversable", $context->node->line);
+                }
 
                 $out = '';
                 $idx = 0;
@@ -158,8 +162,9 @@ class Core
                     $scope['_loop_']  = $loop;
 
                     if (!is_scalar($loop['_value_'])) {
-                        foreach ((array) $loop['_value_'] as $k=>$v)
+                        foreach ((array) $loop['_value_'] as $k=>$v) {
                             $scope[$k] = $v;
+                        }
                     }
 
                     $out .= $context->renderer->renderTree($context->node, $scope);
@@ -178,16 +183,18 @@ class Core
 
         if (isset($this->rules['show'])) {
             $this->handlers['show'] = function($in, $context) {
-                if ($context->chainPos == 0 || $in)
+                if ($context->chainPos == 0 || $in) {
                     return $context->renderer->renderTree($context->node, $context->scope);
+                }
             };
         }
 
         if (isset($this->rules['as'])) {
             $this->handlers['as'] = function($in, $context) {
                 static $e;
-                if (!$e)
+                if (!$e) {
                     $e = new \Tempe\Filter\WebEscaper;
+                }
                 return $e->{$context->args[0]}($in);
             };
         }

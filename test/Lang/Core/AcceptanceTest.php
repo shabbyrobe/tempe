@@ -107,12 +107,37 @@ class AcceptanceTest extends \PHPUnit_Framework_TestCase
     function testPushUnsetAllowed()
     {
         $tpl = "{{#push foo}}yep{{/}}";
-        $r = $this->getRenderer(new \Tempe\Lang\Part\Core());
+        $r = $this->getRenderer();
         $vars = [];
         $this->assertEquals("yep", $r->render($tpl, $vars));
     }
 
-    private function getRenderer($ext=null)
+    function testValueAs()
+    {
+        $tpl = "{{var foo | as html}}";
+        $vars = ['foo'=>'&&'];
+        $r = $this->getRenderer();
+        $this->assertEquals("&amp;&amp;", $r->render($tpl, $vars));
+    }
+
+    function testAsCannotBeFirst()
+    {
+        $tpl = "{{as html}}";
+        $vars = [];
+        $r = $this->getRenderer();
+        $this->setExpectedException('Tempe\Exception\Check', "Handler 'as' may not be first at line 1");
+        $r->render($tpl, $vars);
+    }
+
+    function testBlockAs()
+    {
+        $tpl = "{{#show | as html}}{{var foo}}{{/}}";
+        $vars = ['foo'=>'&&'];
+        $r = $this->getRenderer();
+        $this->assertEquals("&amp;&amp;", $r->render($tpl, $vars));
+    }
+
+    private function getRenderer()
     {
         return new \Tempe\Renderer(\Tempe\Lang\Factory::createBasic());
     }

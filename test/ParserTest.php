@@ -98,6 +98,18 @@ class ParserTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals($tpl, $this->parser->unparse($tree));
     }
 
+    function testParseInvalidTag()
+    {
+        $this->setExpectedException("Tempe\Exception\Parse", "Invalid tag: {{!}} at line 1");
+        $tree = $this->parser->parse('{{!}}');
+    }
+
+    function testParseCloseUnopenedBlock()
+    {
+        $this->setExpectedException("Tempe\Exception\Parse", "Block close found, but no block open at line 1");
+        $tree = $this->parser->parse('{{foo}}{{/wtf}}');
+    }
+
     function testParseUnclosedTagFails()
     {
         $this->setExpectedException("Tempe\Exception\Parse", "Tag close mismatch (opened on line 1)");
@@ -302,6 +314,13 @@ class ParserTest extends \PHPUnit_Framework_TestCase
             ['{{#h key|f1 a1|f2 a2}} {{/}}'          , null  , [['h', ['key']], ['f1', ['a1']], ['f2', ['a2']]] ],
             ['{{#h key  |f1  |  f2   a2  }} {{/}}'   , null  , [['h', ['key']], 'f1', ['f2', ['a2']]] ],
         ];
+    }
+
+    function testUnparseDodgyNode()
+    {
+        $node = (object)['nodes'=>[(object)['type'=>9999999]]];
+        $this->setExpectedException('Tempe\Exception\Parse', 'Cannot unparse UNKNOWN(9999999)');
+        $this->parser->unparse($node);
     }
 
     /**
