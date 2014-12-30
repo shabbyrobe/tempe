@@ -53,7 +53,7 @@ class Renderer
                 if (!$node->chain)
                     continue;
 
-                $context->stop = false;
+                $context->break = false;
 
                 foreach ($node->chain as $context->chainPos=>$h) {
                     $context->argc = $h->argc;
@@ -63,7 +63,7 @@ class Renderer
                         $this->lang->check($h, $node, $context->chainPos);
 
                     $val = $this->lang->handle($h, $val, $context);
-                    if ($context->stop)
+                    if ($context->break)
                         break;
                 }
 

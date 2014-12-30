@@ -5,7 +5,8 @@ class HandlerContext
 {
     public $scope;
     public $chainPos = 0;
-    public $stop = false;
+    public $break = false;
+    public $recurse = true;
     public $args;
     public $argc;
     public $handler;

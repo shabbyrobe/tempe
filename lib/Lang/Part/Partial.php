@@ -66,10 +66,6 @@ class Partial
             catch (\Exception $ex) {
                 throw new \Tempe\Exception\Check("Could not resolve {$handler->name} '$key': {$ex->getMessage()}", $node->line, null, $ex);
             }
-            
-            if (!file_exists($file)) {
-                throw new \Tempe\Exception\Check("{$handler->handler} failed: File $key not found", $node->line, null, $ex);
-            }
         }
         return true;
     }

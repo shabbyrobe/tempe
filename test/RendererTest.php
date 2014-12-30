@@ -59,7 +59,7 @@ class RendererTest extends \PHPUnit_Framework_TestCase
             [1, '1'],
             [0, '0'], 
             [false, ''],
-            [true, '1'],
+            [true, ''], // the renderer specifically prevents this from outputting '1'
         ];
     }
 
@@ -214,7 +214,7 @@ class RendererTest extends \PHPUnit_Framework_TestCase
             'RuntimeException', 
             'Render failed: Unexpected node in parse tree: UNKNOWN(nope) on line 0'
         );
-        $renderer->renderTree((object)['t'=>Renderer::P_ROOT, 'c'=>[(object)['t'=>'nope']]]);
+        $renderer->renderTree((object)['type'=>Renderer::P_ROOT, 'nodes'=>[(object)['type'=>'nope']]]);
     }
 
     function testRenderEmptyBlock()

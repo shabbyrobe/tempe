@@ -74,6 +74,7 @@ class Core
             };
         }
 
+        /*
         if (isset($this->rules['dump'])) {
             $this->handlers['dump'] = function($in, $context) {
                 ob_start();
@@ -81,6 +82,7 @@ class Core
                 return ob_get_clean();
             };
         }
+        */
 
         if (isset($this->rules['eqvar'])) {
             $this->handlers['eqvar'] = function($in, $context) {
@@ -88,15 +90,18 @@ class Core
                 if (!array_key_exists($key, $context->scope))
                     throw new Exception\Render("'eqvar' could not find key '$key' in scope", $context->node->line);
                 
-                return is_object($in) 
+                $yep = is_object($in) 
                     ? $in == $context->scope[$key]
                     : $in === $context->scope[$key];
+
+                if ($yep)
+                    return $in;
             };
         }
 
         if (isset($this->rules['eqval'])) {
             $this->handlers['eqval'] = function($in, $context) {
-                return $in == $context->args[0];
+                return $in == $context->args[0] ? $in : null;
             };
         }
 
@@ -109,7 +114,7 @@ class Core
         if (isset($this->rules['set'])) {
             $this->handlers['set'] = function($in, $context) {
                 $key = $context->args[0];
-                if ($context->node->type == \Tempe\Renderer::P_BLOCK)
+                if ($context->chainPos == 0 && $context->node->type == \Tempe\Renderer::P_BLOCK)
                     $context->scope[$key] = $context->renderer->renderTree($context->node, $context->scope);
                 else
                     $context->scope[$key] = $in;
@@ -119,12 +124,17 @@ class Core
         if (isset($this->rules['each'])) {
             $this->handlers['each'] = function($in, $context) {
                 $key = $context->argc == 1 ? $context->args[0] : null;
-                if ($in)
+                if ($in) {
                     $iter = $in;
-                elseif ($key)
+                }
+                elseif ($key) {
+                    if (!array_key_exists($key, $context->scope))
+                        throw new Exception\Render("'each' could not find key '$key' in scope", $context->node->line);
                     $iter = $context->scope[$key];
-                else
+                }
+                else {
                     return;
+                }
 
                 $out = '';
                 $idx = 0;

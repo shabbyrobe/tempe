@@ -10,7 +10,7 @@ class Strings
 
     public function __construct()
     {
-        $strings = [
+        $stringFuncs = [
             'upper'=>'strtoupper',
             'lower'=>'strtolower',
             'ucfirst'=>'ucfirst',
@@ -29,14 +29,16 @@ class Strings
         ];
 
         $stringRule = ['argc'=>0, 'notFirst'=>true];
-        $stringHandler = function($in, $context) use ($strings) {
-            $f = $strings[$context->handler];
-            return $f($in);
-        };
-
-        foreach ($strings as $handler=>$function) {
+        foreach ($stringFuncs as $handler=>$function) {
             $this->rules[$handler] = $stringRule;
-            $this->handlers[$handler] = $stringHandler;
+            $this->handlers[$handler] = function($in, $context) use ($function) {
+                return $function($in);
+            };
         }
+
+        $this->rules['nl2spc'] = $stringRule;
+        $this->handlers['nl2spc'] = function($in, $context) {
+            return trim(preg_replace("/\n+/", " ", $in));
+        };
     }
 }

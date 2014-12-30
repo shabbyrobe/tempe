@@ -10,7 +10,7 @@ class AcceptanceTest extends \PHPUnit_Framework_TestCase
         $tpl = "{{# each foo }}yep{{/}}";
         $r = $this->getRenderer();
         $vars = [];
-        $this->setExpectedException("Tempe\Exception\Render", "Unknown variable foo");
+        $this->setExpectedException("Tempe\Exception\Render", "'each' could not find key 'foo' in scope at line 1");
         $r->render($tpl, $vars);
     }
 
@@ -66,7 +66,7 @@ class AcceptanceTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals($initialVars, $vars);
     }
 
-    function testSetCapture()
+    function testBlockSetFirstCaptures()
     {
         $tpl = "{{#set hello}}world{{/}}{{var hello}}";
         $expected = "world";
@@ -75,7 +75,16 @@ class AcceptanceTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals(['hello'=>'world'], $vars);
     }
 
-    function testSetCaptureFailsIfNotLast()
+    function testValueSetFailsIfNotLast()
+    {
+        $tpl = "{{set hello | upper}}";
+        $expected = "WORLD";
+        $r = $this->getRenderer();
+        $this->setExpectedException('Tempe\Exception\Check', "Handlers may not follow 'set' in a chain");
+        $r->render($tpl, $vars);
+    }
+
+    function testBlockSetFailsIfNotLast()
     {
         $tpl = "{{#set hello | upper}}world{{/}}";
         $expected = "WORLD";
@@ -84,8 +93,8 @@ class AcceptanceTest extends \PHPUnit_Framework_TestCase
         $r->render($tpl, $vars);
     }
 
-    /** @depends testSetCapture */
-    function testSetCaptureOverwrites()
+    /** @depends testBlockSetFirstCaptures */
+    function testBlockSetFirstOverwrites()
     {
         $tpl = "{{#set hello}}world{{/}}{{#set hello}}pants{{/}}{{var hello}}";
         $expected = "pants";
@@ -94,8 +103,17 @@ class AcceptanceTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals(['hello'=>'pants'], $vars);
     }
 
-    /** @depends testSetCapture */
-    function testSetCaptureInsideEachDoesntHoist()
+    function testBlockSetChained()
+    {
+        $tpl = "{{# show | upper | set hello }}world{{/}}{{ var hello }}";
+        $expected = "WORLD";
+        $r = $this->getRenderer();
+        $this->assertEquals($expected, $r->render($tpl, $vars));
+        $this->assertEquals(['hello'=>'WORLD'], $vars);
+    }
+
+    /** @depends testBlockSetFirstCaptures */
+    function testBlockSetFirstInsideEachDoesntHoist()
     {
         $tpl = "In: {{#each foo}}{{#set hello}}world{{/}}{{var hello}}{{/}}, Out: {{var hello }}";
         $expected = "In: worldworld, Out: yep";
