@@ -124,6 +124,8 @@ class Core
         if (isset($this->rules['each'])) {
             $this->handlers['each'] = function($in, $context) {
                 $key = $context->argc == 1 ? $context->args[0] : null;
+                $iter = null;
+
                 if ($in) {
                     $iter = $in;
                 }
@@ -132,9 +134,12 @@ class Core
                         throw new Exception\Render("'each' could not find key '$key' in scope", $context->node->line);
                     $iter = $context->scope[$key];
                 }
-                else {
+
+                if (!$iter)
                     return;
-                }
+
+                if (!is_array($iter) && !$iter instanceof \Traversable)
+                    throw new Exception\Render("'each' was not traversable", $context->node->line);
 
                 $out = '';
                 $idx = 0;

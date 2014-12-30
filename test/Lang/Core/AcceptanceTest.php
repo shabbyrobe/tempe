@@ -5,67 +5,6 @@ use Tempe\Ext;
 
 class AcceptanceTest extends \PHPUnit_Framework_TestCase
 {
-    function testEachUnsetNotAllowed()
-    {
-        $tpl = "{{# each foo }}yep{{/}}";
-        $r = $this->getRenderer();
-        $vars = [];
-        $this->setExpectedException("Tempe\Exception\Render", "'each' could not find key 'foo' in scope at line 1");
-        $r->render($tpl, $vars);
-    }
-
-    function testEachAssocArray()
-    {
-        $tpl = "{{#each foo}}{{ var a1 }} {{var a2}}\n{{/}}";
-        $expected = "foo bar\nbaz qux\n";
-        $initialVars = $vars = [
-            'foo'=>[
-                ['a1'=>'foo', 'a2'=>'bar'],
-                ['a1'=>'baz', 'a2'=>'qux'],
-            ],
-        ];
-        $r = $this->getRenderer();
-        $this->assertEquals($expected, $r->render($tpl, $vars));
-
-        // make sure the scope changes don't propagate upwards
-        $this->assertEquals($initialVars, $vars);
-    }
-
-    function testEachNumericArray()
-    {
-        $tpl = "{{#each foo}}{{var 0}} {{var 1}}\n{{/}}";
-        $expected = "foo bar\nbaz qux\n";
-        $initialVars = $vars = [
-            'foo'=>[
-                ['foo', 'bar'],
-                ['baz', 'qux'],
-            ],
-        ];
-        $r = $this->getRenderer();
-        $this->assertEquals($expected, $r->render($tpl, $vars));
-
-        // make sure the scope changes don't propagate upwards
-        $this->assertEquals($initialVars, $vars);
-    }
-
-    function testEachMetaVars()
-    {
-        $tpl = "{{#each foo}}{{var _idx_}}|{{var _num_ }}) {{var _key_}} => {{var _value_}}\n{{/}}";
-        $expected = "0|1) a => foo\n1|2) b => bar\n2|3) c => baz\n";
-        $initialVars = $vars = [
-            'foo'=>[
-                'a'=>'foo',
-                'b'=>'bar',
-                'c'=>'baz',
-            ],
-        ];
-        $r = $this->getRenderer();
-        $this->assertEquals($expected, $r->render($tpl, $vars));
-
-        // make sure the scope changes don't propagate upwards
-        $this->assertEquals($initialVars, $vars);
-    }
-
     function testBlockSetFirstCaptures()
     {
         $tpl = "{{#set hello}}world{{/}}{{var hello}}";
