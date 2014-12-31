@@ -1,0 +1,53 @@
+<?php
+require __DIR__."/vendor/autoload.php";
+
+echo "Tempe Boris\n\n";
+echo "Registered variables:\n";
+$script = '
+    $lang = \Tempe\Lang\Factory::createDefault();
+    $parser = new \Tempe\Parser($lang);
+    $renderer = new \Tempe\Renderer($lang);
+';
+echo $script."\n";
+echo "Functions:\n";
+echo '
+    dumptpl($tpl)
+        Dump the tree of a parsed template
+
+    render($tpl, $vars=[])
+        Render a template. Does not show stack traces, just error messages
+';
+echo "\n";
+
+eval($script);
+
+$locals = [
+    'lang'=>$lang,
+    'parser'=>$parser,
+    'renderer'=>$renderer,
+];
+
+foreach ($locals as $k=>$v) $GLOBALS[$k] = $v;
+
+function render($tpl, $vars=[])
+{
+    global $renderer;
+    try {
+        return $renderer->render($tpl, $vars);
+    }
+    catch (\Tempe\Exception $ex) {
+        echo get_class($ex).": ".$ex->getMessage()."\n";
+    }
+}
+
+function dumptpl($tpl)
+{
+    global $parser;
+    \Tempe\Helper::dumpNode($parser->parse($tpl));
+    echo "\n";
+}
+
+$boris->setLocal($locals);
+
+/* vim: set ft=php : */
+

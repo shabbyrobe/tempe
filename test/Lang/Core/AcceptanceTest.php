@@ -120,6 +120,14 @@ class AcceptanceTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals("&amp;&amp;", $r->render($tpl, $vars));
     }
 
+    function testValueMultiAs()
+    {
+        $tpl = "{{var foo | as html | as urlquery}}";
+        $vars = ['foo'=>'&amp;'];
+        $r = $this->getRenderer();
+        $this->assertEquals("%26amp%3Bamp%3B", $r->render($tpl, $vars));
+    }
+
     function testAsCannotBeFirst()
     {
         $tpl = "{{as html}}";

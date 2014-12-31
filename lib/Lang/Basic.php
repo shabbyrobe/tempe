@@ -88,7 +88,7 @@ class Basic implements Lang
         if (!isset($this->handlers[$name])) {
             throw new \Tempe\Exception\Render("Handler '$name' not found", $context->node->line);
         }
-        return $this->handlers[$name]($val, $context);
+        return $this->handlers[$name]($handler, $val, $context);
     }
 }
 

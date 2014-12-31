@@ -31,13 +31,13 @@ class Strings
         $stringRule = ['argc'=>0, 'notFirst'=>true];
         foreach ($stringFuncs as $handler=>$function) {
             $this->rules[$handler] = $stringRule;
-            $this->handlers[$handler] = function($in, $context) use ($function) {
+            $this->handlers[$handler] = function($handler, $in, $context) use ($function) {
                 return $function($in);
             };
         }
 
         $this->rules['nl2spc'] = $stringRule;
-        $this->handlers['nl2spc'] = function($in, $context) {
+        $this->handlers['nl2spc'] = function($handler, $in, $context) {
             return trim(preg_replace("/\n+/", " ", $in));
         };
     }

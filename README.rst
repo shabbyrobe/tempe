@@ -60,6 +60,7 @@ Primitives
 There are three types of primitive in Tempe - **value tags**, **block tags** and the
 **escape sequence**.
 
+
 Tags
 ~~~~
 
@@ -69,7 +70,7 @@ Value tags are intended to be wholly substituted and look like this::
 
     {{ chain }}
 
-Block tags are used to enclose ::
+Block tags are used to surround and capture template parts::
 
     {{# chain }}contents{{/ }}
 
@@ -81,33 +82,38 @@ Blocks can be named to make closing tags easier to identify::
 
     {{# b1: chain }} {{# b2: chain }} {{/ b2 }} {{/ b1 }}
 
+
+Handler Chain
+~~~~~~~~~~~~~
+
 Both block and value tags MAY contain a `chain` of `handlers`.
 
+Handler chains are similar to Unix pipelines - the output of one handler is sent to the
+input of the next. The last handler in the chain connects to the renderer's output.
+
+Each handler is separated by a pipe. You can chain as many handlers together as you wish::
+
+    {{ handler | handler | handler }}
+
+A handler is made up of one or more **identifiers**. Identifiers must satisfy the
+following regex::
 
     [a-zA-Z_\/\.\-\d]+
 
-Block and value tags may contain a chain of **handlers**. Each handler is separated by a
-pipe. You can chain as many handlers together as you wish.
+The first identifier is considered the handler name, all subsequent identifiers are
+considered arguments::
 
-A handler is made up of one or more **identifiers**. The first identifier is considered
-the handler name, all subsequent identifiers are considered arguments.
+    {{ handler1 arg1 arg2 | handler2 arg1 arg2 }}
 
-Whitespace inside tags between symbols is ignored. The following are identical::
+Whitespace inside tags between identifiers and pipes is ignored. The following tags are
+identical::
 
     {{handler1 arg1 arg2|handler2|handler3}}
     {{  handler1   arg1   arg2  |  handler2  |  handler3  }}
+    {{  handler1 arg1 arg2 | 
+        handler2  |  handler3  }}
 
 "Whitespace" is equivalent to the PCRE ``\s`` escape sequence (LF, CR, FF, HTAB, SPACE).
-
-The escape sequence simply emits a curly brace and looks like this::
-
-    {;
-
-It allows you to include the tag opener (``{{``) in your output like so::
-
-    {;{;
-
-You do not need to escape single curly braces.
 
 Whitespace-only tags and empty tags are allowed. This can be used for basic whitespace
 control::
@@ -123,130 +129,6 @@ parser, only the renderer::
     {{#}}This will not appear{{/}}
 
 
-.. _language-quickstart:
-
-The Language Quickstart
------------------------
-
-
-Here is the canonical Mustache example implemented in Tempe's supplied templating
-language::
-
-    Hello {{ var name | as html }}
-    You have just won {{ var value }} dollars!
-    {{# if in_ca }}
-    Well, {{ var taxed_value }} dollars, after taxes.
-    {{/ }}
-
-Given the following hash::
-
-    {
-      "name": "Chris",
-      "value": 10000,
-      "taxed_value": 10000 - (10000 * 0.4),
-      "in_ca": true
-    }
-
-Tempe will produce the following::
-
-    Hello Chris
-    You have just won 10000 dollars!
-    Well, 6000 dollars, after taxes.
-
-
-.. contents::
-
-
-
-The Guts
---------
-
-
-Value Tags
-^^^^^^^^^^
-
-Value tags invoke a ``handler`` function which will be passed an optional ``key``.
-The return value of the ``handler``  will be piped through each optional ``filter``
-specified one after the other.
-
-The resulting string will be appended to the output.
-
-Assuming a handler ``echo`` is registered which returns the key exactly as passed, and the
-filter ``x`` is registered which appends the string ``x`` to its input, the following
-demonstrates the different ways a value tag can be invoked:
-
-Template::
-
-    1. {{echo}}
-    2. {{echo foo}}
-    3. {{echo foo | x}}
-    4. {{echo foo | x | x}}
-    5. {{echo | x | x}}
-    6. {{ echo|x|x }}
-
-Output::
-
-    1. 
-    2. foo
-    3. foox
-    4. fooxx
-    5. xx
-    6. xx
-
-
-Block Tags
-~~~~~~~~~~
-
-Block tags invoke a ``handler`` function which will be passed the optional ``key`` and the
-parse tree representing the ``contents``. The ``handler`` may invoke the renderer using
-the contents, dispose of it, reverse it, eat it, whatever.
-
-The return value of the ``handler`` will be piped through each optional ``filter``
-specified one after the other.
-
-The resulting string will be appended to the output.
-
-Assuming the following things are registered with the renderer:
-
-- a block handler ``double`` which returns the key exactly as passed and then invokes
-  the renderer with the contents twice,
-- a filter ``x`` which appends the string ``x`` to its input
-
-The following example demonstrates block tags:
-
-Template::
-
-    1. {{# double foo}} bar{{/double}}
-    2. {{# double foo | x}} bar{{/ double}}
-    3. {{# double foo | x | x}} bar{{/ double}}
-    4. {{# double | x}}bar {{/ double}}
-    5. {{# double foo | x}}bar {{/ double foo}}
-
-Output::
-
-    1. foo bar bar 
-    2. foo bar barx
-    3. foo bar barxx
-    4. bar bar x
-    5. foo bar bar x
-
-The close tag can optionally contain the same key as the open tag. This key is checked to
-see if it equals the key used in the open tag. The following are valid::
-
-    {{# block key}}{{/block}}
-    {{# block key}}{{/block key}}
-
-The following are invalid::
-
-    {{# block key}}{{/block yup}}
-    {{# block}}{{/block key}}
-
-The close tag can not contain filters. These should be included on the open tag. This is
-invalid::
-
-    {{# block key}}{{/block | pants}}
-
-
 Escape Sequence
 ~~~~~~~~~~~~~~~
 
@@ -258,8 +140,6 @@ It allows you to include the tag opener (``{{``) in your output like so::
 
     {;{;
 
-It contains no identifiers and allows no whitespace.
-
 It is not necessary to escape a single curly brace except to disambiguate it from a tag
 opening. The following does not require escaping::
 
@@ -270,37 +150,18 @@ But this example does::
     {"json": {;{{= key | as.js }}: "yep" }}
 
 
-Cut To The Chase. I Just Wanna Make Templates
----------------------------------------------
+.. _language-quickstart:
 
-The simplest way to get started making web templates is to use the basic bundled web
-language. You get ``if``, ``each`` and ``=`` handlers for free (along with a few others),
-as well as the String and Escaper extensions for good measure.
+The Language Quickstart
+-----------------------
 
-Instantiating is easy:
+Get the variable ``foo`` and write to the output::
 
-.. code-block:: php
-    
-    <?php
-    // provides a core templating language
-    $renderer = \Tempe\Renderer::createBasic();
-    
-    // based on createBasic(), but includes web-context specific output escapers
-    $renderer = \Tempe\Renderer::createBasicWeb();
+    {{ var foo }}
 
-The basic language is made up of the following handlers:
+Get the variable ``foo``, escape as HTML then write to the output::
 
-- ``{{= key}}``: Echo the variable at ``key``
-- ``{{# if key}}{{/if}}``: Conditionally display a block
-- ``{{# not key}}{{/not}}``: Conditionally display a block (inverse ``if``)
-- ``{{# each key}}{{/each}}``: Iterate over ``key``
-- ``{{# block key}}{{/block}}``: Capture a block into ``key``, or filter a block's contents
-- ``{{# push key}}{{push}}``: Push a scope onto the stack
-
-Some basic filter sets are provided as well:
-
-- Web output escapers (quoting for HTML, etc)
-- String manipulation (``upper``, ``lower``, etc)
+    {{ var foo | as html }}
 
 .. warning::
 
@@ -313,284 +174,133 @@ Some basic filter sets are provided as well:
     is essential reading for anyone who believes that automatic output escaping isn't a
     bad idea.
 
-
-``{{= key}}``: Echo a variable
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Value handler which output the variable ``key`` from the current scope::
-
-    {{= key}}
-
-Example:
-
-.. code-block:: php
-
-    <?php
-    $tmpl = "{{= foo}} {{= bar | upper}}";
-    $vars = ['foo'=>'hello', 'bar'=>'world'];
-    echo $renderer->render($tmpl, $vars);
-
-Output::
-
-    hello world
-
-
-``{{# if key}}{{/if}}``: Conditionally display a block
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-The ``if`` block handler will render its contents if the ``key`` is present and truthy in the
-current scope::
-
-    {{# if key}}Visible{{/if}}
-
-Example:
-
-.. code-block:: php
+Nested lookup::
     
-    <?php
-    $tmpl = "
-    {{# if yes     }} 1. Visible {{/if}}
-    {{# if alsoYep }} 2. Visible {{/if}}
-    {{# if nup     }} 3. Not visible {{/if}}
-    {{# if unset   }} 4. Not visible {{/if}}
-    ";
-    $vars = [
-        "yes"=>true,
-        "alsoYes"=>"hello",
-        "nup"=>false,
-    ];
-    echo $renderer->render($tmpl, $vars);
+    Given the hash {"foo": {"bar": "yep"}}
+    This should print "yep": {{ var foo | var bar }}
 
-Output::
+Display a block if variable ``foo`` is truthy::
 
-    1. Visible
-    2. Visible
+    {{# var foo | show }}Truthy!{{/}}
 
+Display a block if variable ``foo`` is equal to ``hello``::
 
-``{{# not key}}{{/not}}``: Conditionally display a block (inverse ``if``)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    {{# var foo | eqval hello | show }}Hello!{{/}}
 
-The ``not`` block handler is the opposite of the ``if`` handler - it will render its
-contents if the key is not present in the current scope or evaluates to falsy::
+Display a block if variable ``foo`` is equal to variable ``bar``::
 
-    {{# not key}}Visible{{/not}}
+    {{# var foo | eqvar bar | show }}foo is equal to bar!{{/}}
 
-Example:
+Display a block if variable ``foo`` is not equal to ``hello``::
 
-.. code-block:: php
+    {{# var foo | eqval hello | not | show }}Goodbye!{{/}}
+
+Block iteration::
+
+    With the following hash:
+    {"foo": [ {"a": 1, "b": 2}, {"a": 3, "b": 4} ]}
+
+    This template:
+    {{# each foo }}
+        Key:            {{ var _key_ }}
+        Value:          {{ var _value_ | var a }}
+        0-based index:  {{ var _idx_ }}
+        1-based number: {{ var _num_ }}
+        Is it first?:   {{#var _first_|show}}Yep!{{/}}{{#var _first_|not|show}}Nup!{{/}}
+
+        `foo` is merged with the current scope:
+            {{ var a }}, {{ var b }}
+    {{/}}
+
+    Will output:
+
+        Key:            0
+        Value:          1
+        0-based index:  0
+        1-based number: 1
+        Is it first?:   Yep!
+
+        ``foo`` is merged with the current scope:
+            1, 2
     
-    <?php
-    $tmpl = "
-    {{# not yes     }} 1. Not Visible {{/not}}
-    {{# not alsoYep }} 2. Not Visible {{/not}}
-    {{# not nup     }} 3. Visible {{/not}}
-    {{# not unset   }} 4. Visible {{/not}}
-    ";
-    $vars = [
-        "yes"=>true,
-        "alsoYes"=>"hello",
-        "nup"=>false,
-    ];
-    echo $renderer->render($tmpl, $vars);
+        Key:            1
+        Value:          3
+        0-based index:  1
+        1-based number: 2
+        Is it first?:   Nup!
 
-Output::
+        ``foo`` is merged with the current scope:
+            3, 4
 
-    3. Visible
-    4. Visible
+Set a variable to the contents of a block::
 
+    Should print nothing: {{# set foo }}Hello World{{/}}
+    Should print "Hello World": {{ var foo }}
 
-``{{# each key}}{{/each}}``: Iterate
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Set a variable from a different variable::
 
-The ``each`` handler allows looping over an array::
+    {{# set foo }}hello{{/}}
+    {{# set bar }}world{{/}}
+    {{ var foo | set bar }}
+    {{# if foo | eqvar bar }}This should show!{{/}}
 
-    {{# each key}}{{= @value}}{{/each}}
+Push an array onto the current scope for a block::
 
-The contents will be rendered once for each element in the array.
+    Given the hash:   {"foo": {"bar": "hello"}}
+    The template:     {{# push foo }}{{ var bar }}{{/}}
+    Should output:    hello
 
-Example:
+Build a nested array using ``push``::
 
-.. code-block:: php
-    
-    <?php
-    $tmpl = "{{# each list}}var1 = {{= var1}}, var2 = {{= var2}}\n{{/each}}";
-    $vars = [
-        'list'=>[
-            ['var1'=>'foo', 'var2'=>'bar'],
-            ['var1'=>'baz', 'var2'=>'qux'],
-        ],
-    ];
-    echo $renderer->render($tmpl, $vars);
+    {{# a: push foo }}
+    {{# b: push bar }}
+    {{# set baz }}hello{{/}}
+    {{/ b }}
+    {{/ a }}
+    Should print 'hello': {{ var foo | var bar | var baz }}
 
-Output::
+Handlers are chainable. This contrived example makes an entire block upper case, then html
+escapes it, then sets it to another variable::
 
-    var1 = foo, var2 = bar
-    var1 = baz, var2 = qux
+    {{# show | upper | as html | set foo }}
+    foo & bar
+    {{/}}
+    Should show "FOO &amp; BAR": {{ var foo }}
+ 
+String filters:
 
-
-The following metavariables are made available in the scope:
-
-- ``@key`` -  The current array key
-- ``@value`` - The current array value
-- ``@first`` - Boolean indicating whether this is the first iteration
-- ``@idx`` -  0-based numeric index of current iteration
-- ``@num`` -  1-based numeric index of current iteration
-
-
-A new scope is created which is popped when the block exits. If the list element is an
-array, it is merged with the current scope:
-
-.. code-block:: php
-
-    <?php
-    $tmpl = "{{= var }} {{# each list }} {{= var }} {{/each}} {{= var }}";
-    $vars = [
-        'var'=>'foo',
-        'list'=>[['var'=>'bar'], ['var'=>'baz']],
-    ];
-    echo $renderer->render($tmpl, $vars);
-
-Output::
-
-    foo  bar  baz  foo
+- ``upper``: convert to upper case
+- ``lower``: convert to lower case
+- ``ucfirst``: first string to upper case
+- ``lcfirst``: first string to lower case
+- ``ucwords``: first letter of every word to upper case
+- ``trim``: trim all whitespace from both ends of string
+- ``ltrim``: trim whitespace from start 
+- ``rtrim``: trim whitespace from end
+- ``rev``: reverse string
+- ``striptags``: strip HTML tags from string (PHP function)
+- ``base64``: convert to base64
+- ``nl2spc``: convert one or more consecutive newlines into one space
+- ``nl2br``: convert each newline to a ``<br />``
 
 
-Joining strings
-^^^^^^^^^^^^^^^
+Guts Quickstart
+---------------
 
-There is no ``join`` or ``implode`` function, but you can simulate joining simply by
-checking if the element is ``#not`` the ``@first``:
+Making your own language with Tempe's primitives is extremely easy:
 
 .. code-block:: php
 
     <?php
-    $tmpl = "{{# each list}}{{#not @first}}, {{/not}}{{= @value }}{{/each}}";
-    $vars = [
-        'list'=>['foo', 'bar', 'baz', 'qux'],
+    $handlers = [
+        'foo'=>function($in, \Tempe\HandlerContext $context) { return 'foo'; },
+        'bar'=>function($in, \Tempe\HandlerContext $context) { return 'bar'; },
     ];
-    echo $renderer->render($tmpl, $vars);
+    $lang = new \Tempe\Lang\Basic($handlers);
+    $renderer = new \Tempe\Renderer($lang);
 
-Output::
+    echo $renderer->render('{{ foo }}{{ bar }}');
 
-    foo, bar, baz, qux
+Handlers take two 
 
-
-``{{# block key}}{{/block}}``: Capture a block into a key, or filter a block's contents
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-The ``block`` handler can do two things depending on whether a ``key`` is supplied.
-
-With a ``key``, it captures the output of rendering the contents in to the current scope
-using ``key`` as the name. Filters are ignored in this mode.
-
-Without a ``key``, it simply echoes the output of rendering the contents, but filters will
-be applied to the result.
-
-.. code-block:: php
-
-    <?php
-    $tmpl = "
-    Before capture: {{# block foo | upper}}hello{{/block}}
-    After capture: {{= foo}}
-    Filter: {{# block | upper}}hello{{/block}}
-    ";
-    echo $renderer->render($tmpl);
-
-Output::
-
-    Before capture:
-    After capture: hello
-    Filter: HELLO
-
-
-``{{# push key}}{{push}}``: Push a scope onto the stack
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-The ``push`` handler copies the current scope and merges it with the associative array
-found at ``key``. This can be used to access nested elements.
-
-The scope is popped when the block exits.
-
-.. code-block:: php
-
-    <?php
-    $tmpl = 
-        "{{#push first}}".
-            "{{# push second}}".
-                "{{= all}} {{= var}} ".
-            "{{/ push}}".
-            "{{= all}} {{= var}} ".
-        "{{/ push}}".
-        "{{= all}} {{= var}}"
-    ;
-    $vars = [
-        'all'=>'z',
-        'var'=>'a',
-        'first'=>[
-            'var'=>'b',
-            'second'=>['var'=>'c'],
-        ],
-    ];
-    echo $renderer->render($tmpl, $vars);
-
-Output::
-
-    c z b z a z
-
-
-Web Escaping Filters
-~~~~~~~~~~~~~~~~~~~~
-
-Provided by ``Tempe\Filter\WebEscaper`` and loaded when using
-``Tempe\Renderer::createWebSyntax()``. Provides basic output escaping filters with a web
-focus.
-
-Each filter method should be used to represent the context of the output and should
-*always come last in the filter sequence*
-
-``| as.html``
-    Inside an HTML element, i.e. ``<p>{{= foo | as.html}}</p>``.
-
-``| as.htmlAttr``
-    Inside a quoted (single or double) HTML attribute, i.e. 
-    ``<div class="{{= foo | as.htmlAttr}}">``
-
-``| as.urlQuery``
-    Inside a URL. If the value returned by the handler is an associative array, it will be
-    turned into a query string, i.e. ``foo=bar&baz=qux``. If it is a string, it will be
-    ``%`` encoded.
-    
-    If the URL is intended to be output into an HTML document, you will need to chain it
-    with one of the other escapers, i.e. ``<a href="page.html?foo={{= bar |
-    as.urlQuery | as.htmlAttr}}">``
-
-``| as.js``
-    Inside a quoted (single or double) Javascript string.
-    i.e. ``var foo = "foo {{= bar | as.js}} baz";``
-
-``| as.htmlComment``
-    Inside an HTML comment: ``<!-- {{= foo | as.htmlComment}} -->``
-
-``| as.unquotedHtmlAttr``
-    Inside an unquoted HTML attribute: ``<a href={{= foo | as.unquotedHtmlAttr}} class=foo>``
-
-
-String Filters
-~~~~~~~~~~~~~~
-
-Provided by ``Tempe\Filter\String``.
-
-The following filters are made available by default:
-
-- ``upper`` - Convert to upper case
-- ``lower`` - Convert to lower case
-- ``ucfirst`` - Convert the first character to upper case
-- ``lcfirst`` - Convert the first character to lower case
-- ``ucwords`` - Title Case All Words Just Like This Sentence
-- ``trim`` - Trim leading and trailing whitespace
-- ``ltrim`` - Trim leading whitespace
-- ``rtrim`` - Trim trailing whitespace
-- ``rev`` - Reverse the string
-- ``nl2br`` - Convert newlines to ``<br/>``
-- ``striptags`` - Remove any HTML tags. Uses `strip_tags() <http://php.net/strip_tags>`_
 

@@ -12,12 +12,11 @@ class Core
     {
         $this->rules = [
             'var'   => ['argMin'=>0, 'argMax'=>1],
-            'dump'  => ['argc'=>0],
             'eqval' => ['argc'=>1],
             'eqvar' => ['argc'=>1],
             'not'   => ['argc'=>0],
             'each'  => ['argMin'=>0, 'argMax'=>1, 'allowValue'=>false],
-            'as'    => ['argc'=>1, 'notFirst'=>true],
+            'as'    => ['argMin'=>1, 'notFirst'=>true],
             'push'  => ['argc'=>1, 'chainable'=>false],
             'show'  => ['argc'=>0, 'allowValue'=>false],
             'set'   => ['argc'=>1, 'last'=>true],
@@ -53,10 +52,9 @@ class Core
         }
 
         if (isset($this->rules['var'])) {
-            $this->handlers['var'] = function($in, $context) {
+            $this->handlers['var'] = function($handler, $in, $context) {
                 $scopeInput = false;
-
-                $key = isset($context->args[0]) ? $context->args[0] : null;
+                $key = isset($handler->args[0]) ? $handler->args[0] : null;
                 if ($key && $in !== '' && $in !== null) {
                     $scopeInput = true;
                     $scope = $in;
@@ -79,8 +77,8 @@ class Core
         }
 
         if (isset($this->rules['eqvar'])) {
-            $this->handlers['eqvar'] = function($in, $context) {
-                $key = $context->args[0];
+            $this->handlers['eqvar'] = function($handler, $in, $context) {
+                $key = $handler->args[0];
                 if (!array_key_exists($key, $context->scope)) {
                     throw new Exception\Render("'eqvar' could not find key '$key' in scope", $context->node->line);
                 }
@@ -97,8 +95,8 @@ class Core
         }
 
         if (isset($this->rules['eqval'])) {
-            $this->handlers['eqval'] = function($in, $context) {
-                $yep = $in == $context->args[0];
+            $this->handlers['eqval'] = function($handler, $in, $context) {
+                $yep = $in == $handler->args[0];
                 if ($yep) {
                     return true;
                 } else {
@@ -108,14 +106,14 @@ class Core
         }
 
         if (isset($this->rules['not'])) {
-            $this->handlers['not'] = function($in, $context) {
+            $this->handlers['not'] = function($handler, $in, $context) {
                 return !$in;
             };
         }
 
         if (isset($this->rules['set'])) {
-            $this->handlers['set'] = function($in, $context) {
-                $key = $context->args[0];
+            $this->handlers['set'] = function($handler, $in, $context) {
+                $key = $handler->args[0];
                 if ($context->chainPos == 0 && $context->node->type == \Tempe\Renderer::P_BLOCK) {
                     $context->scope[$key] = $context->renderer->renderTree($context->node, $context->scope);
                 } else {
@@ -125,8 +123,8 @@ class Core
         }
 
         if (isset($this->rules['each'])) {
-            $this->handlers['each'] = function($in, $context) {
-                $key = $context->argc == 1 ? $context->args[0] : null;
+            $this->handlers['each'] = function($handler, $in, $context) {
+                $key = $handler->argc == 1 ? $handler->args[0] : null;
                 $iter = null;
 
                 if ($in) {
@@ -175,14 +173,14 @@ class Core
         }
 
         if (isset($this->rules['push'])) {
-            $this->handlers['push'] = function($in, $context) {
-                $scope = &$context->scope[$context->args[0]];
+            $this->handlers['push'] = function($handler, $in, $context) {
+                $scope = &$context->scope[$handler->args[0]];
                 return $context->renderer->renderTree($context->node, $scope);
             };
         }
 
         if (isset($this->rules['show'])) {
-            $this->handlers['show'] = function($in, $context) {
+            $this->handlers['show'] = function($handler, $in, $context) {
                 if ($context->chainPos == 0 || $in) {
                     return $context->renderer->renderTree($context->node, $context->scope);
                 }
@@ -190,12 +188,20 @@ class Core
         }
 
         if (isset($this->rules['as'])) {
-            $this->handlers['as'] = function($in, $context) {
+            $this->handlers['as'] = function($handler, $in, $context) {
                 static $e;
                 if (!$e) {
                     $e = new \Tempe\Filter\WebEscaper;
                 }
-                return $e->{$context->args[0]}($in);
+                if (isset($handler->args[1])) {
+                    foreach ($handler->args as $arg) {
+                        $in = $e->{$arg}($in);
+                    }
+                    return $in;
+                }
+                else {
+                    return $e->{$handler->args[0]}($in);
+                }
             };
         }
 

@@ -70,9 +70,9 @@ class Partial
         return true;
     }
 
-    function tpl($in, $context)
+    function tpl($handler, $in, $context)
     {
-        $key = isset($context->args[0]) ? $context->args[0] : $in;
+        $key = isset($handler->args[0]) ? $handler->args[0] : $in;
 
         return $context->renderer->render(
             file_get_contents($this->resolveFile($key)), 
@@ -80,9 +80,9 @@ class Partial
         );
     }
 
-    function incl($in, $context)
+    function incl($handler, $in, $context)
     {
-        $key = isset($context->args[0]) ? $context->args[0] : $in;
+        $key = isset($handler->args[0]) ? $handler->args[0] : $in;
 
         return file_get_contents($this->resolveFile($key));
     }

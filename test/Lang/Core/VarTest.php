@@ -11,20 +11,22 @@ class VarTest extends \PHPUnit_Framework_TestCase
         $ctx = new HandlerContext;
         $ctx->scope = &$scope;
         $ctx->renderer = $renderer;
-        $ctx->args = (array) $args;
-        $ctx->argc = count($ctx->args);
         $ctx->node = (object)[
             'line'=>1,
         ];
-        return $ctx;
+
+        $h = (object)[];
+        $h->args = (array) $args;
+        $h->argc = count($h->args);
+        return [$h, $ctx];
     }
 
     function testHandlerVarInputAsKey()
     {
         $c = new Lang\Part\Core();
         $vars = ['foo'=>'yep'];
-        $context = $this->createContext($vars);
-        $result = $c->handlers['var']('foo', $context);
+        list($h, $context) = $this->createContext($vars);
+        $result = $c->handlers['var']($h, 'foo', $context);
         $this->assertEquals('yep', $result);
     }
 
@@ -32,8 +34,8 @@ class VarTest extends \PHPUnit_Framework_TestCase
     {
         $c = new Lang\Part\Core();
         $vars = ['foo'=>'bar'];
-        $context = $this->createContext($vars, 'bar');
-        $result = $c->handlers['var'](['bar'=>'yep'], $context);
+        list($h, $context) = $this->createContext($vars, 'bar');
+        $result = $c->handlers['var']($h, ['bar'=>'yep'], $context);
         $this->assertEquals('yep', $result);
     }
 
@@ -41,8 +43,8 @@ class VarTest extends \PHPUnit_Framework_TestCase
     {
         $c = new Lang\Part\Core();
         $vars = new \ArrayObject(['foo'=>'yep']);
-        $context = $this->createContext($vars, 'foo');
-        $result = $c->handlers['var']('', $context);
+        list($h, $context) = $this->createContext($vars, 'foo');
+        $result = $c->handlers['var']($h, '', $context);
         $this->assertEquals('yep', $result);
     }
 
@@ -50,17 +52,17 @@ class VarTest extends \PHPUnit_Framework_TestCase
     {
         $c = new Lang\Part\Core();
         $vars = (object)['foo'=>'yep'];
-        $context = $this->createContext($vars, 'foo');
+        list($h, $context) = $this->createContext($vars, 'foo');
         $this->setExpectedException("Tempe\Exception\Render", "Input scope was not an array or ArrayAccess at line 1");
-        $c->handlers['var']('', $context);
+        $c->handlers['var']($h, '', $context);
     }
 
     function testHandlerVarFromScope()
     {
         $c = new Lang\Part\Core();
         $vars = ['foo'=>'yep'];
-        $context = $this->createContext($vars, 'foo');
-        $result = $c->handlers['var']('', $context);
+        list($h, $context) = $this->createContext($vars, 'foo');
+        $result = $c->handlers['var']($h, '', $context);
         $this->assertEquals('yep', $result);
     }
 
@@ -68,19 +70,19 @@ class VarTest extends \PHPUnit_Framework_TestCase
     {
         $c = new Lang\Part\Core();
         $vars = [];
-        $context = $this->createContext($vars, 'foo');
+        list($h, $context) = $this->createContext($vars, 'foo');
 
         $this->setExpectedException('Tempe\Exception\Render', "'var' could not find key 'foo' in context scope");
-        $result = $c->handlers['var']('', $context);
+        $result = $c->handlers['var']($h, '', $context);
     }
 
     function testValueHandlerOutputMissingInputKeyFails()
     {
         $c = new Lang\Part\Core();
         $vars = [];
-        $context = $this->createContext($vars, 'foo');
+        list($h, $context) = $this->createContext($vars, 'foo');
 
         $this->setExpectedException('Tempe\Exception\Render', "'var' could not find key 'foo' in input scope");
-        $result = $c->handlers['var']([], $context);
+        $result = $c->handlers['var']($h, [], $context);
     }
 }

@@ -60,9 +60,6 @@ class Renderer
                 }
                 else {
                     foreach ($node->chain as $context->chainPos=>$h) {
-                        $context->argc = $h->argc;
-                        $context->args = $h->args;
-                        $context->handler = $h->name;
                         if ($this->check) {
                             $this->lang->check($h, $node, $context->chainPos);
                         }
