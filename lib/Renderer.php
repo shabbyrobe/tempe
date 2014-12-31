@@ -53,22 +53,23 @@ class Renderer
             }
             elseif ($node->type == self::P_VALUE || $node->type == self::P_BLOCK) {
                 $val = null;
-
-                if (!$node->chain) {
-                    continue;
-                }
                 $context->break = false;
-
-                foreach ($node->chain as $context->chainPos=>$h) {
-                    $context->argc = $h->argc;
-                    $context->args = $h->args;
-                    $context->handler = $h->name;
-                    if ($this->check) {
-                        $this->lang->check($h, $node, $context->chainPos);
-                    }
-                    $val = $this->lang->handle($h, $val, $context);
-                    if ($context->break) {
-                        break;
+                
+                if (!$node->chain) {
+                    $val = $this->lang->handleEmpty($context);
+                }
+                else {
+                    foreach ($node->chain as $context->chainPos=>$h) {
+                        $context->argc = $h->argc;
+                        $context->args = $h->args;
+                        $context->handler = $h->name;
+                        if ($this->check) {
+                            $this->lang->check($h, $node, $context->chainPos);
+                        }
+                        $val = $this->lang->handle($h, $val, $context);
+                        if ($context->break) {
+                            break;
+                        }
                     }
                 }
 

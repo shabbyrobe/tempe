@@ -107,6 +107,13 @@ class ConditionalTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals('', $out);
     }
 
+    function testEqVarUnset()
+    {
+        $vars = ['foo'=>'a'];
+        $this->setExpectedException('Tempe\Exception\Render', "'eqvar' could not find key 'bar' in scope at line 1");
+        $this->renderer->render("{{# var foo | eqvar bar | show }}{{/}}", $vars);
+    }
+
     function dataTruthy()
     {
         return [

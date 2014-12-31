@@ -3,6 +3,9 @@ namespace Tempe\Lang;
 
 class Factory
 {
+    /**
+     * @codeCoverageIgnore
+     */
     private function __construct()
     {}
 

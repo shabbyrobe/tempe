@@ -60,9 +60,6 @@ class Core
                 if ($key && $in !== '' && $in !== null) {
                     $scopeInput = true;
                     $scope = $in;
-                    if (!is_array($scope) && !$scope instanceof \ArrayAccess) {
-                        throw new \Exception\Render("Input scope was not an array or ArrayAccess", $context->node->line);
-                    }
                 }
                 else {
                     $scope = $context->scope;
@@ -70,6 +67,9 @@ class Core
 
                 if ($in && !$key) {
                     $key = $in;
+                }
+                if (!is_array($scope) && !$scope instanceof \ArrayAccess) {
+                    throw new Exception\Render("Input scope was not an array or ArrayAccess", $context->node->line);
                 }
                 if (!array_key_exists($key, $scope)) {
                     throw new Exception\Render("'var' could not find key '$key' in ".($scopeInput ? 'input' : 'context')." scope", $context->node->line);

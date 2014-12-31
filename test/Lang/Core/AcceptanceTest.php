@@ -19,7 +19,7 @@ class AcceptanceTest extends \PHPUnit_Framework_TestCase
         $tpl = "{{set hello | upper}}";
         $expected = "WORLD";
         $r = $this->getRenderer();
-        $this->setExpectedException('Tempe\Exception\Check', "Handlers may not follow 'set' in a chain");
+        $this->setExpectedException('Tempe\Exception\Check', "Handlers must not follow 'set' in a chain");
         $r->render($tpl, $vars);
     }
 
@@ -28,7 +28,7 @@ class AcceptanceTest extends \PHPUnit_Framework_TestCase
         $tpl = "{{#set hello | upper}}world{{/}}";
         $expected = "WORLD";
         $r = $this->getRenderer();
-        $this->setExpectedException('Tempe\Exception\Check', "Handlers may not follow 'set' in a chain");
+        $this->setExpectedException('Tempe\Exception\Check', "Handlers must not follow 'set' in a chain");
         $r->render($tpl, $vars);
     }
 
@@ -125,7 +125,7 @@ class AcceptanceTest extends \PHPUnit_Framework_TestCase
         $tpl = "{{as html}}";
         $vars = [];
         $r = $this->getRenderer();
-        $this->setExpectedException('Tempe\Exception\Check', "Handler 'as' may not be first at line 1");
+        $this->setExpectedException('Tempe\Exception\Check', "Handler 'as' must not be first at line 1");
         $r->render($tpl, $vars);
     }
 

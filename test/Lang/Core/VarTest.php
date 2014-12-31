@@ -37,6 +37,24 @@ class VarTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals('yep', $result);
     }
 
+    function testHandlerVarArrayAccess()
+    {
+        $c = new Lang\Part\Core();
+        $vars = new \ArrayObject(['foo'=>'yep']);
+        $context = $this->createContext($vars, 'foo');
+        $result = $c->handlers['var']('', $context);
+        $this->assertEquals('yep', $result);
+    }
+
+    function testHandlerVarFailsWithInvalidScope()
+    {
+        $c = new Lang\Part\Core();
+        $vars = (object)['foo'=>'yep'];
+        $context = $this->createContext($vars, 'foo');
+        $this->setExpectedException("Tempe\Exception\Render", "Input scope was not an array or ArrayAccess at line 1");
+        $c->handlers['var']('', $context);
+    }
+
     function testHandlerVarFromScope()
     {
         $c = new Lang\Part\Core();

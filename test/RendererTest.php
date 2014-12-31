@@ -258,4 +258,50 @@ class RendererTest extends \PHPUnit_Framework_TestCase
         $this->setExpectedException('InvalidArgumentException', 'Tree version 99999 does not match expected version 2');
         (new Renderer)->renderTree($node);
     }
+
+    function testRenderCheck()
+    {
+        $tpl = "{{ oi }}";
+        $lang = new \Tempe\Lang\Basic(
+            ['oi'=>function() { return 'oi'; }],
+            ['oi'=>['argc'=>1]]
+        );
+        $parser = new Parser();
+        $tree = $parser->parse($tpl);
+        $renderer = new Renderer($lang, null, !!'check');
+        $this->setExpectedException('Tempe\Exception\Check');
+        $renderer->renderTree($tree);
+    }
+
+    function testBreakResets()
+    {
+        $lang = new \Tempe\Lang\Basic([
+            'break'=>function($in, $context) { $context->break = true; },
+            'nope' =>function($in, $context) { throw new \Exception(1); },
+            'check'=>function($in, $context) { if ($context->break) $this->fail("Break did not reset"); },
+        ]);
+        $renderer = new Renderer($lang);
+        $out = $renderer->render("{{break|nope}}{{check}}");
+        $this->assertEmpty($out);
+    }
+
+    function testHandleEmptyValue()
+    {
+        $lang = new \Tempe\Lang\Basic([], [], function() {
+            return 'EMPTY!';
+        });
+        $renderer = new Renderer($lang);
+        $out = $renderer->render("{{ }}");
+        $this->assertEquals('EMPTY!', $out);
+    }
+
+    function testHandleEmptyBlock()
+    {
+        $lang = new \Tempe\Lang\Basic([], [], function() {
+            return 'EMPTY!';
+        });
+        $renderer = new Renderer($lang);
+        $out = $renderer->render("{{#}}NOTHING{{/}}");
+        $this->assertEquals('EMPTY!', $out);
+    }
 }

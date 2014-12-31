@@ -174,7 +174,7 @@ class Parser
         }
         if ($buffer) {
             $node->nodes[] = (object)[
-                'type'=>Renderer::P_STRING, 'v'=>$buffer, 'line'=>$bufferLine,
+                'type'=>Renderer::P_STRING, 'v'=>$buffer, 'line'=>$bufferLine
             ];
         }
 

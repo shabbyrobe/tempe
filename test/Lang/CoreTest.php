@@ -44,4 +44,22 @@ class CoreTest extends \PHPUnit_Framework_TestCase
         $this->assertTrue(isset($c->handlers['show']));
         $this->assertTrue(isset($c->rules['show']));
     }
+
+    function testWhiteListAndBlackListFails()
+    {
+        $this->setExpectedException("InvalidArgumentException", "Only specify whitelist or blacklist, not both");
+        $c = new Lang\Part\Core(['whitelist'=>['each'], 'blacklist'=>['var']]);
+    }
+
+    function testWhitelistUnknownHandlerFails()
+    {
+        $this->setExpectedException("InvalidArgumentException", "Unknown handler nopenope");
+        $c = new Lang\Part\Core(['whitelist'=>['nopenope']]);
+    }
+
+    function testBlacklistUnknownHandlerFails()
+    {
+        $this->setExpectedException("InvalidArgumentException", "Unknown handler nopenope");
+        $c = new Lang\Part\Core(['blacklist'=>['nopenope']]);
+    }
 }
