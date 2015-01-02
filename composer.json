@@ -1,7 +1,7 @@
 {
     "name": "shabbyrobe/tempe",
     "keywords": ["templating"],
-    "version": "1.0.0-beta1",
+    "version": "1.0.0",
     "license": "MIT",
     "description": "Very simple, flexible templating language for PHP",
     "homepage": "http://k3jw.com/code/tempe/",
