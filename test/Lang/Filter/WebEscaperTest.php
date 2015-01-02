@@ -5,25 +5,6 @@ use Tempe\Filter\WebEscaper;
 
 class WebEscaperTest extends \PHPUnit_Framework_TestCase
 {
-    public function testAsExtension()
-    {
-        $ext = WebEscaper::asExtension();
-        $this->assertInstanceOf('stdClass', $ext);
-        $this->assertTrue(isset($ext->filters['as']));
-        $this->assertInstanceOf('Tempe\Filter\WebEscaper', $ext->filters['as']);
-    }
-
-    /**
-     * @depends testAsExtension
-     */
-    public function testAsExtensionWithFilterName()
-    {
-        $ext = WebEscaper::asExtension('quack');
-        $this->assertInstanceOf('stdClass', $ext);
-        $this->assertTrue(isset($ext->filters['quack']));
-        $this->assertInstanceOf('Tempe\Filter\WebEscaper', $ext->filters['quack']);
-    }
-	
 	public function testMultiWithArray()
 	{
 		$escaper = $this->getMockBuilder('Tempe\Filter\WebEscaper')

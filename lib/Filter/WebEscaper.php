@@ -16,11 +16,6 @@ class WebEscaper
         }
     }
 
-    static function asExtension($filterName=null, $charset=null)
-    {
-        return (object)['filters'=>[$filterName ?: 'as'=>new static($charset)]];
-    }
-
     public function urlQuery($input)
     {
         if (is_array($input)) {
