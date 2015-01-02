@@ -194,6 +194,10 @@ Get the variable ``foo``, escape as HTML then write to the output::
 
     {{ var foo | as html }}
 
+Nested escape contexts can be handled in a single call to ``as``::
+
+    <a href="url.php?arg={{ var foo | as html urlquery }}">foo</a>
+
 .. warning::
 
     *Tempe* does not do any escaping by default. It is incumbent on the template author to
@@ -205,7 +209,7 @@ Get the variable ``foo``, escape as HTML then write to the output::
     is essential reading for anyone who believes that automatic output escaping isn't a
     bad idea.
 
-Nested lookup::
+Nested variable lookup::
     
     Given the hash {"foo": {"bar": "yep"}}
     This should print "yep": {{ var foo | var bar }}
