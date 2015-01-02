@@ -18,20 +18,20 @@ class Renderer
         $this->parser = $parser ?: new Parser($lang);
     }
 
-    public function render($template, &$vars=[])
+    public function render($template, &$scope=[])
     {
         if (!is_string($template)) {
             throw new \InvalidArgumentException("Render expects string. Did you mean renderTree()?");
         }
         $tree = $this->parser->parse($template);
-        return $this->renderTree($tree, $vars); 
+        return $this->renderTree($tree, $scope); 
     }
 
-    public function renderTree($tree, &$vars=[])
+    public function renderTree($tree, &$scope=[])
     {
         $out = '';
         $context = new HandlerContext;
-        $context->scope = &$vars;
+        $context->scope = &$scope;
         $context->renderer = $this;
 
         if (!isset($tree->nodes)) {
