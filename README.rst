@@ -545,14 +545,14 @@ as well. These rules will be applied at parse time:
     $parser = new \Tempe\Parser($lang);
     $renderer = new \Tempe\Renderer($lang, $parser);
 
-    // if you are allowing the renderer to create the default parser for you, the language
-    // will also be passed.
+    // if you are allowing the renderer to create the default parser for you, 
+    // the language will also be passed.
     $renderer = new \Tempe\Renderer($lang);
 
-    // will throw "Handler 'myHandler' expected 1 arg(s), found 2 at line 1"
+    // throws "Handler 'myHandler' expected 1 arg(s), found 2 at line 1"
     $renderer->render('{{ myHandler a b }}');
 
-    // will throw "Handler 'myHandler' expected to be first, but found at pos 2 at line 1
+    // throws "Handler 'myHandler' expected to be first, but found at pos 2 at line 1
     $renderer->render('{{ myHandler a | myHandler a b }}');
 
 
