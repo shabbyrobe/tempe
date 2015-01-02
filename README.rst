@@ -36,9 +36,9 @@ to mind.
 
 `Twig <http://twig.sensiolabs.com/>`_ is also great, but boy is it ever slow. Complex
 templates can also be extremely cumbersome to work with due to how easy it is to allow
-convoluted expression logic to bleed in to the template from your controller, and very
-easily fall prey to ill-disciplined developers (I'm looking at you, everybody, and
-especially at you, clock).
+convoluted expression logic to bleed in to the template from your controller. This is easy
+prey for ill-disciplined developers (I'm looking at you, everybody, and especially at you,
+clock).
 
 Both of these templating engines are fine choices, but I've spent too long bumping up
 against the problems with both approaches. Tempe is an experiment in finding a
@@ -48,7 +48,8 @@ simple as they can possibly be like Mustache.
 Tempe's Guts are also much simpler than both Mustache and Twig - it comes with no features
 by default, but the primitives it does provide make it possible to provide a
 feature-complete replacement for either. Tempe comes bundled with an implementation of
-these features you can use if you wish, though you do not have to.
+these features you can use if you wish, though you do not have to - you are free to
+implement your own handlers as you see fit.
 
 Because of this design, Tempe can also be used to create your own templating DSL using its
 Guts - you can strip it back to almost nothing and tailor it to your needs. This
@@ -56,31 +57,6 @@ makes it ideal for scenarios where you do not want to provide a complex templati
 but need a little bit more than ``strtr`` can give you (which is exactly the scenario that
 led me to write it in the first place - ``strtr`` was too simple, Twig wasn't simple
 enough, Mustache is too HTML-specific).
-
-
-Play
-----
-
-Tempe comes bundled with a configuration file for `boris
-<https://github.com/d11wtq/boris>`_. Boris offers a PHP REPL. If you invoke ``boris`` from
-the Tempe source directory, you will get a shell with Tempe set up and ready to go::
-
-    ~/php/tempe$ boris
-    Tempe Shell
-
-    [1] boris> dumptpl("{{ var foo }}");
-    0  1 P_ROOT     |  
-    1  1   P_VALUE  |  var (foo)
-     → NULL
-
-    [2] boris> render("{{ var foo }}", ['foo'=>'bar']);
-    Render:
-    ---
-    bar
-    ---
-    Parser time:  0.306ms
-    Render time:  0.481ms
-     → NULL
 
 
 Primitives
@@ -170,19 +146,45 @@ It allows you to include the tag opener (``{{``) in your output like so::
     {;{;
 
 It is not necessary to escape a single curly brace except to disambiguate it from a tag
-opening. The following does not require escaping::
+opening. The following does not require the escape sequence::
 
-    {"json": {"yep": {{= key | as.js }} }}
+    {"json": {"yep": {{ var value | as js }} }}
 
 But this example does::
 
-    {"json": {;{{= key | as.js }}: "yep" }}
+    {"json": {;{{ var key | as js }}: "yep" }}
 
 
-.. _language:
+Language
+--------
 
-The Language
-------------
+Play
+~~~~
+
+Tempe comes bundled with a configuration file for `boris
+<https://github.com/d11wtq/boris>`_. Boris offers a PHP REPL. If you invoke ``boris`` from
+the Tempe source directory, you will get a shell with Tempe set up and ready to go::
+
+    ~/php/tempe$ boris
+    Tempe Shell
+
+    [1] boris> dumptpl("{{ var foo }}");
+    0  1 P_ROOT     |  
+    1  1   P_VALUE  |  var (foo)
+     → NULL
+
+    [2] boris> render("{{ var foo }}", ['foo'=>'bar']);
+    Render:
+    ---
+    bar
+    ---
+    Parser time:  0.306ms
+    Render time:  0.481ms
+     → NULL
+
+
+Handlers
+~~~~~~~~
 
 Get the variable ``foo`` and write to the output::
 
@@ -208,21 +210,45 @@ Nested lookup::
     Given the hash {"foo": {"bar": "yep"}}
     This should print "yep": {{ var foo | var bar }}
 
+Set a variable to the contents of a block::
+
+    Should print nothing: {{# set foo }}Hello World{{/}}
+    Should print "Hello World": {{ var foo }}
+
+Set a variable from a different variable, overwriting if it already exists::
+
+    {{# set foo }}hello{{/}}
+    {{# set bar }}world{{/}}
+    {{ var foo | set bar }}
+    Should print hello: {{ var bar }}
+
 Display a block if variable ``foo`` is truthy::
 
     {{# var foo | show }}Truthy!{{/}}
 
-Display a block if variable ``foo`` is equal to ``hello``::
+Display a block if variable ``foo`` is equal to the **value** ``hello``::
 
     {{# var foo | eqval hello | show }}Hello!{{/}}
 
-Display a block if variable ``foo`` is equal to variable ``bar``::
-
-    {{# var foo | eqvar bar | show }}foo is equal to bar!{{/}}
-
-Display a block if variable ``foo`` is not equal to ``hello``::
+Display a block if variable ``foo`` is **not** equal to the **value** ``hello``::
 
     {{# var foo | eqval hello | not | show }}Goodbye!{{/}}
+
+``eqval`` is limited to loose comparisons with **identifiers**. Comparisons can be done
+between variables using ``eqvar``::
+
+    Given the hash {"foo": "yep", "bar": "yep"}
+    This block should render: 
+    {{# var foo | eqvar bar | show }}foo is equal to bar!{{/}}
+
+Complex expressions can be tested using a combination of ``set`` and ``eqvar``. This
+allows the use of concatenation in comparisons::
+
+    {{# set foo }}hel{{/}}
+    {{# set bar }}lo{{/}}
+    {{# set expr}}{{ var foo }}{{ var bar }}{{/}}
+    {{# set test }}hello{{/}}
+    {{# var expr | eqvar test | show }}This should show!{{/}}
 
 Block iteration::
 
@@ -261,18 +287,6 @@ Block iteration::
         ``foo`` is merged with the current scope:
             3, 4
 
-Set a variable to the contents of a block::
-
-    Should print nothing: {{# set foo }}Hello World{{/}}
-    Should print "Hello World": {{ var foo }}
-
-Set a variable from a different variable::
-
-    {{# set foo }}hello{{/}}
-    {{# set bar }}world{{/}}
-    {{ var foo | set bar }}
-    {{# if foo | eqvar bar }}This should show!{{/}}
-
 Push an array onto the current scope for a block::
 
     Given the hash:   {"foo": {"bar": "hello"}}
@@ -296,7 +310,9 @@ escapes it, then sets it to another variable::
     {{/}}
     Should show "FOO &amp; BAR": {{ var foo }}
  
-String filters:
+
+String filters
+~~~~~~~~~~~~~~
 
 - ``upper``: convert to upper case
 - ``lower``: convert to lower case
@@ -313,10 +329,8 @@ String filters:
 - ``nl2br``: convert each newline to a ``<br />``
 
 
-.. _guts:
-
-The Guts
---------
+Guts
+----
 
 Making your own language with Tempe's primitives is extremely easy, you just need to write
 your own handlers:
