@@ -1,7 +1,7 @@
 <?php
 require __DIR__."/vendor/autoload.php";
 
-echo "Tempe Boris\n\n";
+echo "Tempe Shell\n\n";
 echo "Registered variables:\n";
 $script = '
     $lang = \Tempe\Lang\Factory::createDefault();
@@ -11,11 +11,13 @@ $script = '
 echo $script."\n";
 echo "Functions:\n";
 echo '
-    dumptpl($tpl)
-        Dump the tree of a parsed template
+    dumptpl($tpl, $lang=true)
+        Dump the tree of a parsed template. Pass your own $lang as the
+        second argument, or "false" to use no $lang.
 
-    render($tpl, $vars=[])
-        Render a template. Does not show stack traces, just error messages
+    render($tpl, $vars=[], &$into=null)
+        Print a rendered template. Does not show stack traces, just 
+        error messages
 ';
 echo "\n";
 
@@ -29,22 +31,48 @@ $locals = [
 
 foreach ($locals as $k=>$v) $GLOBALS[$k] = $v;
 
-function render($tpl, $vars=[])
-{
-    global $renderer;
-    try {
-        return $renderer->render($tpl, $vars);
-    }
-    catch (\Tempe\Exception $ex) {
-        echo get_class($ex).": ".$ex->getMessage()."\n";
-    }
-}
-
-function dumptpl($tpl)
+function render($tpl, $vars=[], &$into=null)
 {
     global $parser;
-    \Tempe\Helper::dumpNode($parser->parse($tpl));
-    echo "\n";
+    global $renderer;
+
+    $pt = null;
+    $rt = null;
+    echo "Render:\n---\n";
+    try {
+        $ps = microtime(true);
+        $tree = $parser->parse($tpl);
+        $pt = microtime(true) - $ps;
+
+        $rs = microtime(true);
+        $into = $renderer->renderTree($tree, $vars);
+        $rt = microtime(true) - $rs;
+
+        echo $into;
+    }
+    catch (\Tempe\Exception $ex) {
+        echo get_class($ex).": ".$ex->getMessage();
+    }
+
+    echo "\n---\n";
+    echo "Parser time:  ".round($pt * 1000, 3)."ms\n";
+    echo "Render time:  ".round($rt * 1000, 3)."ms\n";
+}
+
+function dumptpl($tpl, $lang=true)
+{
+    if ($lang === true) {
+        global $parser;
+        \Tempe\Helper::dumpNode($parser->parse($tpl));
+    }
+    elseif ($lang == false) {
+        $parser = new \Tempe\Parser();
+        \Tempe\Helper::dumpNode($parser->parse($tpl));
+    }
+    else {
+        $parser = new \Tempe\Parser($lang);
+        \Tempe\Helper::dumpNode($parser->parse($tpl));
+    }
 }
 
 $boris->setLocal($locals);
