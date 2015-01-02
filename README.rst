@@ -14,10 +14,14 @@ generic language which provides semantics which will appear somewhat familiar to
 `handlebars.js <http://handlebarsjs.com/>`_.
 
 If you want a simple, flexible templating engine comparable to Mustache/Handlebars or
-Twig/Jinja2, see :ref:`language-quickstart`.
+Twig/Jinja2, see language_.
 
 If you want to make your own simple, domain-specific templating language using Tempe's
-primitives, see :ref:`guts-quickstart`.
+primitives, see guts_.
+
+.. contents::
+    :backlinks: none
+    :depth: 2
 
 
 Why?
@@ -54,15 +58,40 @@ led me to write it in the first place - ``strtr`` was too simple, Twig wasn't si
 enough, Mustache is too HTML-specific).
 
 
+Play
+----
+
+Tempe comes bundled with a configuration file for `boris
+<https://github.com/d11wtq/boris>`_. Boris offers a PHP REPL. If you invoke ``boris`` from
+the Tempe source directory, you will get a shell with Tempe set up and ready to go::
+
+    ~/php/tempe$ boris
+    Tempe Shell
+
+    [1] boris> dumptpl("{{ var foo }}");
+    0  1 P_ROOT     |  
+    1  1   P_VALUE  |  var (foo)
+     → NULL
+
+    [2] boris> render("{{ var foo }}", ['foo'=>'bar']);
+    Render:
+    ---
+    bar
+    ---
+    Parser time:  0.306ms
+    Render time:  0.481ms
+     → NULL
+
+
 Primitives
 ----------
 
-There are three types of primitive in Tempe - **value tags**, **block tags** and the
-**escape sequence**.
+There are three primitives in Tempe - **value tags**, **block tags** and the **escape
+sequence**.
 
 
-Tags
-~~~~
+Value and Block Tags
+~~~~~~~~~~~~~~~~~~~~
 
 All tags are opened with ``{{`` and closed with ``}}``. This cannot be changed.
 
@@ -86,7 +115,7 @@ Blocks can be named to make closing tags easier to identify::
 Handler Chain
 ~~~~~~~~~~~~~
 
-Both block and value tags MAY contain a `chain` of `handlers`.
+Both block and value tags MAY contain a **chain** of **handlers**.
 
 Handler chains are similar to Unix pipelines - the output of one handler is sent to the
 input of the next. The last handler in the chain connects to the renderer's output.
@@ -150,10 +179,10 @@ But this example does::
     {"json": {;{{= key | as.js }}: "yep" }}
 
 
-.. _language-quickstart:
+.. _language:
 
-The Language Quickstart
------------------------
+The Language
+------------
 
 Get the variable ``foo`` and write to the output::
 
@@ -284,23 +313,418 @@ String filters:
 - ``nl2br``: convert each newline to a ``<br />``
 
 
-Guts Quickstart
----------------
+.. _guts:
 
-Making your own language with Tempe's primitives is extremely easy:
+The Guts
+--------
+
+Making your own language with Tempe's primitives is extremely easy, you just need to write
+your own handlers:
 
 .. code-block:: php
 
     <?php
     $handlers = [
-        'foo'=>function($in, \Tempe\HandlerContext $context) { return 'foo'; },
-        'bar'=>function($in, \Tempe\HandlerContext $context) { return 'bar'; },
+        'foo'=>function($handler, $in, \Tempe\HandlerContext $context) { return 'foo'; },
+        'bar'=>function($handler, $in, \Tempe\HandlerContext $context) { return 'bar'; },
     ];
     $lang = new \Tempe\Lang\Basic($handlers);
     $renderer = new \Tempe\Renderer($lang);
 
     echo $renderer->render('{{ foo }}{{ bar }}');
 
-Handlers take two 
+.. note::
+    
+    The above handlers contain a fairly verbose way of representing the arguments. The
+    rest of this guide will simply use ``($h, $in, $ctx)`` as a shorthand for ``($handler,
+    $in, \Tempe\HandlerContext $context)``.
 
+
+.. _handler-functions:
+
+Handler Functions
+~~~~~~~~~~~~~~~~~
+
+Handler functions take three arguments:
+
+``$handler``:
+    An object containing the following properties:
+
+    - ``name``: the handler name
+    - ``args``: array of arguments to the handler
+    - ``argc``: number of arguments
+
+    Given the template ``{{ h 1 2 3 }}``, ``name`` will be set to ``h``, ``args`` will be
+    set to ``[1, 2, 3]``, and ``argc`` will be set to 3.
+
+``$in``:
+    Contains the input from any previous handlers in the chain (or an empty string if the
+    handler is the first). This is quite similar to how ``STDIN`` works in unix. Handlers
+    can return anything at all, so be sure to include some sanity checks if you want
+    decent error handling (not just crap like "Object of class BlahBlah could not be
+    converted to string".
+
+``$context``:
+    An instance of ``Tempe\HandlerContext``, which has the following properties:
+    
+    ``renderer``
+        The renderer which is calling the handler will be available here. You may call
+        ``render`` against it without any ill effects.
+
+    ``scope``
+        array or ArrayAccess instance containing the current scope.
+
+    ``chainPos``
+        0-indexed position of this handler in the chain.
+
+    ``break``
+        Boolean, default ``false``. Set this to ``true`` if you want each subsequent
+        handler in the chain to be ignored. You may still return a value from the handler
+        even if you set break to ``true``.
+
+    ``node``
+        The node in the parse tree corresponding to this handler's tag. Use this, combined
+        with ``renderer``, to recurse::
+            
+            $myHandler = function($handler, $in, $context) {
+                return $context->renderer->renderTree($context->node, $context->scope);
+            };
+
+        You may replace, modify or omit ``$context->scope`` if you wish.
+
+
+Nodes
+~~~~~
+
+The ``HandlerContext`` passed to a handler contains the node from the parse tree
+corresponding to the handler's tag. A node object contains the following properties:
+
+``type``
+    Either ``\Tempe\Render::P_BLOCK`` or ``\Tempe\Renderer::P_VALUE``.
+
+``line``
+    The line in the template that this tag was opened on.
+
+``id``
+    If the tag contains an id (the part before the colon ``{{ myid: handler }}``, this
+    will be available here, otherwise it will be ``null``.
+
+``chain``
+    The entire chain of handlers as an array of handler objects. Handler objects are
+    described in handler-functions_.
+
+
+If the node's type is ``\Tempe\Render::P_BLOCK``, it will also have the ``nodes``
+property. It will contain an array of nodes representing the block's contents.
+
+
+Recursion
+~~~~~~~~~
+
+``Tempe\Renderer`` does not recurse block tags automatically:
+
+.. code-block:: php
+
+    <?php
+    $handlers = [
+        'foo'=>function($h, $in, $ctx) { return 'foo'; },
+        'bar'=>function($h, $in, $ctx) { throw new \Exception(); },
+    ];
+    $lang = new \Tempe\Lang\Basic($handlers);
+    $renderer = new \Tempe\Renderer($lang);
+
+    echo $renderer->render('{{# foo }}{{ bar }}{{/}}');
+
+The above example prints ``foo``. The Exception is never triggered. If you want to write a
+handler that returns the contents of the block, you can make use of the
+``HandlerContext`` to render the node recursively:
+
+.. code-block:: php
+
+    <?php
+    $handlers = [
+        'foo'=>function($h, $in, $ctx) { 
+            return $ctx->renderer->renderTree($ctx->node, $ctx->scope);
+        },
+        'bar'=>function($h, $in, $ctx) { return 'bar'; },
+    ];
+    $lang = new \Tempe\Lang\Basic($handlers);
+    $renderer = new \Tempe\Renderer($lang);
+
+    echo $renderer->render('{{# foo }}{{ bar }}{{/}}');
+
+This time we get ``bar`` as our output.
+
+If you do not pass ``$ctx->scope`` as the second argument to ``renderTree``, you will
+lose access to the current scope inside the block. This may be exactly what you want, but
+it probably isn't. You are free to modify the scope as you please before passing it to
+``renderTree``. 
+
+You should be aware of the difference between using an array and using an instance of
+ArrayAccess as your scope if you are planning on making modifications in your block:
+
+.. code-block:: php
+
+    <?php
+    $handlers = [
+        'block'=>function($h, $in, $ctx) { 
+            $scope = $ctx->scope;
+            $scope['foo'] = 'inside';
+            return $ctx->renderer->renderTree($ctx->node, $scope);
+        },
+        'var'=>function($h, $in, $ctx) { return $ctx->scope[$h->args[0]]; },
+    ];
+    $renderer = new \Tempe\Renderer(new \Tempe\Lang\Basic($handlers));
+
+    $tpl = "{{# block }}{{ var foo }}{{/}} {{ var foo }}";
+
+    $scope = ['foo'=>'outside'];
+    assert("inside outside" == $renderer->render($tpl, $scope));
+
+    $scope = new \ArrayObject(['foo'=>'outside']);
+    assert("inside inside" == $renderer->render($tpl, $scope));
+
+
+Rules
+~~~~~
+
+You can implement all of your validation as guard clauses directly in your handlers. You
+should throw ``\Tempe\Exception\Check`` if the clause fails. If you pass the node's line
+as the second argument, you will get better error messages.
+
+.. code-block:: php
+
+    <?php
+    $lang = new \Tempe\Lang\Basic(['myHandler'=>function($h, $in, $ctx) {
+        if ($h->argc != 1) {
+            $msg = "myHandler expects 1 argument, found {$h->argc}";
+            throw new \Tempe\Exception\Check($msg, $ctx->node->line);
+        }
+        if ($ctx->chainPos != 0) {
+            $msg = "myHandler must be first in a chain, found at pos {$ctx->chainPos}";
+            throw new \Tempe\Exception\Check($msg, $ctx->node->line);
+        }
+        return $h->args[0];
+    }]);
+
+This can get cumbersome if you have a lot of handlers, plus it will slow down rendering if
+you are doing quite a lot of checking on every single handler invocation.
+
+A better place to do the checking is during parsing. ``Tempe\Lang\Basic`` comes with a
+simple way of specifying the most common rules, but you can pass arbitrary check functions
+as well. These rules will be applied at parse time:
+
+.. code-block:: php
+
+    <?php
+    $handlers = [
+        'myHandler'=>function($h, $in, $ctx) {
+            return $h->args[0];
+        }
+    ];
+    $rules = [
+        'myHandler'=>['argc'=>1, 'first'=>true],
+    ];
+    $lang = new \Tempe\Lang\Basic($handlers, $rules);
+
+    // if you are creating the parser by hand, you must pass the language
+    $parser = new \Tempe\Parser($lang);
+    $renderer = new \Tempe\Renderer($lang, $parser);
+
+    // if you are allowing the renderer to create the default parser for you, the language
+    // will also be passed.
+    $renderer = new \Tempe\Renderer($lang);
+
+    // will throw "Handler 'myHandler' expected 1 arg(s), found 2 at line 1"
+    $renderer->render('{{ myHandler a b }}');
+
+    // will throw "Handler 'myHandler' expected to be first, but found at pos 2 at line 1
+    $renderer->render('{{ myHandler a | myHandler a b }}');
+
+
+You can also instruct the renderer to check while rendering if you like. This can be
+useful if you want to cache the parse tree and ensure that it is still valid during
+rendering, but it will slow the render down so it is off by default.
+
+.. code-block:: php
+
+    <?php
+    $renderer = new \Tempe\Renderer($lang, $parser, !!'check');
+
+    // use the default lang and parser
+    $renderer = new \Tempe\Renderer(null, null, !!'check');
+
+    // set it as a property instead
+    $renderer = new \Tempe\Renderer();
+    $renderer->check = true;
+
+
+Available rules
+^^^^^^^^^^^^^^^
+
+``argc`` - int
+    Handler argument count must be exactly equal to this
+
+``argMin`` - int
+    Handler argument count must not be less than this. Ignored if ``argc`` set.
+    
+``argMax`` - int
+    Handler argument count must not be more than this. Ignored if ``argc`` set.
+
+``allowValue`` - bool, default: true
+    Set this to false to prevent the handler from being used on **value** tags
+
+``allowBlock`` - bool, default: true
+    Set this to false to prevent the handler from being used on **block** tags
+
+``chainable`` - bool, default: true
+    Set this to false if you want this to be the only handler in a chain. If ``chainable``
+    is false for handler ``lonesome``::
+    
+        Valid: 
+            {{ lonesome }}
+            {{# lonesome }}{{/}}
+
+        Invalid:
+            {{ foo | lonesome | bar }}
+            {{ lonesome | bar }}
+            {{ bar | lonesome }}
+    
+``last`` - bool, default: null
+    If ``true``, no handlers can come after this one in a chain. Valid: ``{{ foo |
+    mustbelast }}``. Invalid: ``{{ foo | mustbelast | bar }}``.
+
+    If ``false``, this handler must not be last in a chain. Valid: ``{{ foo |
+    mustnotbelast | bar }}``. Invalid: ``{{ foo | bar | mustnotbelast }}``.
+
+``first`` - bool, default: null
+    If ``true``, this handler **must** be the first handler in the chain. Valid: ``{{
+    mustbefirst | foo }}``. Invalid: ``{{ foo | mustbefirst }}``
+
+    If ``false``, this handler **must not** be first in the chain. Valid: ``{{ foo |
+    mustnotbefirst }}``. Invalid: ``{{ mustnotbefirst }}``.
+
+``check`` - callable
+    Pass any function you like to this. It will receive the following arguments::
+
+        function check($handler, $node, $chainPos)
+
+    You MUST return ``true`` for the handler to pass. If you return something falsey or
+    nothing at all, you receive a generic exception which may not be particularly helpful. 
+
+    For the sake of your users, you should throw ``Tempe\Exception\Check`` with a
+    descriptive message.
+
+    .. code-block:: php
+        
+        <?php
+        $handlers = [
+            'foo'=>function($handler) {
+                return $handler->args[0];
+            },
+        ];
+        $rules = [
+            'foo'=>['check'=>function($handler, $node, $chainPos) {
+                if ($handler->args[0] != 'foo') {
+                    $msg = "For some reason, you can only pass 'foo' as the first argument";
+                    throw new \Tempe\Exception\Check($msg, $node->line);
+                }
+                return true;
+            }],
+        ];
+        $lang = new \Tempe\Lang\Basic($handlers, $rules);
+
+
+Parsing
+~~~~~~~
+
+``Tempe\Parser`` will take a template and turn it into a parse tree.
+
+Perhaps the best way of demonstrating how the parser works is to show you the output of
+``Tempe\Helper::dumpNode($node)``.
+
+.. code-block:: php
+
+    <?php
+    $tpl = "
+    Here's a value tag. The handler is 'hello':
+    {{ hello world }}
+
+    Here's a chained value tag:
+    {{ foo bar | baz qux | ding dang dong }}
+
+    Ooh, escape sequence:
+    {;{ foo bar }}
+
+    Here's a named block tag with some stuff inside:
+    {{# mystuff: group }}
+        {{ pants }}
+        {{# morestuff }}{{ pants }}{{/}}
+    {{/ mystuff }}
+    ";
+    $parser = new \Tempe\Parser();
+    \Tempe\Helper::dumpNode($parser->parse($tpl));
+
+The output (columns are depth, line, type or id, and info)::
+ 
+    0   1 P_ROOT          |  
+    1   1   P_STRING      |  "Here's a value tag. ..."
+    1   2   P_VALUE       |  hello (world)
+    1   2   P_STRING      |  "\n\nHere's a chained v..."
+    1   5   P_VALUE       |  foo (bar) -> baz (qux) -> ding (dang dong)
+    1   5   P_STRING      |  "\n\nOoh, escape sequen..."
+    1   8   P_ESC         |  
+    1   8   P_STRING      |  "{ foo bar }}\n\nHere's..."
+    1  11   mystuff       |  group ()
+    2  11     P_STRING    |  "\n    "
+    2  12     P_VALUE     |  pants ()
+    2  12     P_STRING    |  "\n    "
+    2  13     P_BLOCK     |  morestuff ()
+    3  13       P_VALUE   |  pants ()
+    2  13     P_STRING    |  "\n"
+
+.. note::
+
+   If you run ``\Tempe\Helper::dumpNode()`` from the CLI, you will get fancy formatting in
+   the output. It's actually quite nice, I initially regretted wasting the time writing it
+   but it has proven invaluable.
+
+
+Completely Custom Language
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+You don't like, want or need what ``Tempe\Lang\Basic`` offers? No problem! Just implement
+``Tempe\Lang`` yourself:
+
+.. code-block:: php
+
+    <?php
+    class MyLang implements \Tempe\Lang
+    {
+        function check($handler, $node, $chainPos)
+        {
+            return true;
+        }
+
+        function handle($handler, $in, \Tempe\HandlerContext $context)
+        {
+            switch ($handler->name) {
+            case 'foo': return "foo "; break;
+            case 'bar': return "bar "; break;
+            default: return $handler->name."(".implode(", ", $handler->args).") ";
+            }
+        }
+
+        function handleEmpty(\Tempe\HandlerContext $context)
+        {
+            return "<empty>";
+        }
+    }
+    $lang = new MyLang();
+    $renderer = new \Tempe\Renderer($lang);
+    echo $renderer->render("{{ foo }}{{ bar }}{{ baz qux }}{{}}");
+
+Output::
+
+    foo bar baz(qux) <empty>
 
