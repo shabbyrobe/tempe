@@ -28,7 +28,7 @@ class Strings
             'base64'=>'base64_encode',
         ];
 
-        $stringRule = ['argc'=>0, 'notFirst'=>true];
+        $stringRule = ['argc'=>0, 'first'=>false];
         foreach ($stringFuncs as $handler=>$function) {
             $this->rules[$handler] = $stringRule;
             $this->handlers[$handler] = function($handler, $in, $context) use ($function) {

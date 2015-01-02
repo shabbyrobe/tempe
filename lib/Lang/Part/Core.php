@@ -16,7 +16,7 @@ class Core
             'eqvar' => ['argc'=>1],
             'not'   => ['argc'=>0],
             'each'  => ['argMin'=>0, 'argMax'=>1, 'allowValue'=>false],
-            'as'    => ['argMin'=>1, 'notFirst'=>true],
+            'as'    => ['argMin'=>1, 'first'=>false],
             'push'  => ['argc'=>1, 'chainable'=>false],
             'show'  => ['argc'=>0, 'allowValue'=>false],
             'set'   => ['argc'=>1, 'last'=>true],

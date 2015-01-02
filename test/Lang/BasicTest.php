@@ -63,14 +63,25 @@ class BasicTest extends \PHPUnit_Framework_TestCase
 
     function testCheckLast()
     {
-        $h = ['foo'=>function() {}, 'h'=>function() {}];
-        $parser = new Parser(new Basic($h, ['h'=>['last'=>true]]));
-        $this->assertNotEmpty($parser->parse('{{ foo | h }}'));
-        $this->assertNotEmpty($parser->parse('{{ foo | foo | h }}'));
-        $this->assertNotEmpty($parser->parse('{{ h }}'));
+        $h = ['foo'=>function() {}, 'last'=>function() {}];
+        $parser = new Parser(new Basic($h, ['last'=>['last'=>true]]));
+        $this->assertNotEmpty($parser->parse('{{ foo | last }}'));
+        $this->assertNotEmpty($parser->parse('{{ foo | foo | last }}'));
+        $this->assertNotEmpty($parser->parse('{{ last }}'));
 
-        $this->setExpectedException('Tempe\Exception\Check', "Handlers must not follow 'h' in a chain at line 1");
-        $parser->parse('{{ h | foo }}');
+        $this->setExpectedException('Tempe\Exception\Check', "Handlers must not follow 'last' in a chain at line 1");
+        $parser->parse('{{ last | foo }}');
+    }
+
+    function testCheckNotLast()
+    {
+        $h = ['foo'=>function() {}, 'notLast'=>function() {}];
+        $parser = new Parser(new Basic($h, ['notLast'=>['last'=>false]]));
+        $this->assertNotEmpty($parser->parse('{{ notLast | foo }}'));
+        $this->assertNotEmpty($parser->parse('{{ foo | notLast | foo }}'));
+
+        $this->setExpectedException('Tempe\Exception\Check', "Handlers must follow 'notLast' in a chain at line 1");
+        $parser->parse('{{ foo | notLast }}');
     }
 
     function testCheckNotChainable()
@@ -81,10 +92,21 @@ class BasicTest extends \PHPUnit_Framework_TestCase
         $parser->parse('{{ h | h }}');
     }
 
+    function testCheckFirst()
+    {
+        $h = ['foo'=>function() {}, 'first'=>function() {}];
+        $parser = new Parser(new Basic($h, ['first'=>['first'=>true]]));
+
+        $this->assertNotEmpty($parser->parse('{{ first | foo }}'));
+
+        $this->setExpectedException('Tempe\Exception\Check', "Handler 'first' must be first, but found at pos 2 at line 1");
+        $parser->parse('{{ foo | first }}');
+    }
+
     function testCheckNotFirst()
     {
         $h = ['foo'=>function() {}, 'h'=>function() {}];
-        $parser = new Parser(new Basic($h, ['h'=>['notFirst'=>false]]));
+        $parser = new Parser(new Basic($h, ['h'=>['first'=>false]]));
 
         $this->assertNotEmpty($parser->parse('{{ foo | h }}'));
         $this->assertNotEmpty($parser->parse('{{ foo | h | h }}'));

@@ -62,11 +62,29 @@ class Basic implements Lang
             if (isset($rule['chainable']) && !$rule['chainable'] && ($chainPos != 0 || isset($node->chain[1]))) {
                 throw new Exception\Check("Handler '$hid' is not chainable", $node->line);
             }
-            if (isset($rule['last']) && isset($node->chain[$chainPos+1])) {
-                throw new Exception\Check("Handlers must not follow '$hid' in a chain", $node->line);
+            if (isset($rule['last'])) {
+                if ($rule['last']) {
+                    if (isset($node->chain[$chainPos+1])) {
+                        throw new Exception\Check("Handlers must not follow '$hid' in a chain", $node->line);
+                    }
+                }
+                else {
+                    if (!isset($node->chain[$chainPos+1])) {
+                        throw new Exception\Check("Handlers must follow '$hid' in a chain", $node->line);
+                    }
+                }
             }
-            if (isset($rule['notFirst']) && $chainPos == 0) {
-                throw new Exception\Check("Handler '$hid' must not be first", $node->line);
+            if (isset($rule['first'])) {
+                if ($rule['first']) {
+                    if ($chainPos != 0) {
+                        throw new Exception\Check("Handler '$hid' must be first, but found at pos ".($chainPos+1), $node->line);
+                    }
+                }
+                else {
+                    if ($chainPos == 0) {
+                        throw new Exception\Check("Handler '$hid' must not be first", $node->line);
+                    }
+                }
             }
             if (isset($rule['check']) && !$rule['check']($handler, $node, $chainPos)) {
                 throw new Exception\Check("Handler '$hid' check failed", $node->line);
