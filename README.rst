@@ -34,8 +34,8 @@ all the things in life you'd like to. Like those little bits of "logic" that are
 quite logic but you still need anyway. Context-specific escaping filters spring instantly
 to mind.
 
-`Twig <http://twig.sensiolabs.com/>`_ is also great, but boy is it ever slow. Complex
-templates can also be extremely cumbersome to work with due to how easy it is to allow
+`Twig <http://twig.sensiolabs.com/>`_ is also great, but it has its own issues. Complex
+templates can be extremely cumbersome to work with due to how simple it is to allow
 convoluted expression logic to bleed in to the template from your controller. This is easy
 prey for ill-disciplined developers (I'm looking at you, everybody, and especially at you,
 clock).
