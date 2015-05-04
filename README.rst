@@ -1,6 +1,11 @@
 Tempe
 =====
 
+.. note:: This is a legacy version of Tempe. It is intended to provide a bridge for users
+    of Tempe 1 to Tempe 2 by providing forwards compatible primitives, at the expense of
+    backward compatibility with Tempe 1, for the only major user of the language that
+    exists at this point in time. Please don't use it!
+
 .. image:: https://travis-ci.org/shabbyrobe/tempe.svg
 
 Tempe (temˈpē) is a very simple templating language.
@@ -39,7 +44,6 @@ Will produce the following::
 
 
 .. contents::
-
 
 Why?
 ----

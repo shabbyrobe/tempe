@@ -1,14 +1,14 @@
 {
     "name": "shabbyrobe/tempe",
     "keywords": ["templating"],
-    "version": "1.0.0",
+    "version": "1.1.0",
     "license": "MIT",
     "description": "Very simple, flexible templating language for PHP",
     "homepage": "http://k3jw.com/code/tempe/",
     "authors": [
         {
-        	"name": "Blake Williams", 
-        	"email": "code@k3jw.com"
+            "name": "Blake Williams", 
+            "email": "blake@shabbyrobe.org"
         }
     ],
     "autoload": {
