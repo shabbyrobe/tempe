@@ -240,12 +240,12 @@ class ParserTest extends \PHPUnit_Framework_TestCase
 
             ["{{handler|f1|f2}}"            , ['h'=>'handler', 'k'=>null, 'f'=>[['f1'], ['f2']]]],
             ["{{handler|f1  |  f2}}"        , ['h'=>'handler', 'k'=>null, 'f'=>[['f1'], ['f2']]]],
-            ["{{handler|f1.a1}}"            , ['h'=>'handler', 'k'=>null, 'f'=>[['f1', 'a1']]]],
-            ["{{handler|f1.a1|f2.a2}}"      , ['h'=>'handler', 'k'=>null, 'f'=>[['f1', 'a1'], ['f2', 'a2']]]],
+            ["{{handler|f1 a1}}"            , ['h'=>'handler', 'k'=>null, 'f'=>[['f1', 'a1']]]],
+            ["{{handler|f1 a1|f2 a2}}"      , ['h'=>'handler', 'k'=>null, 'f'=>[['f1', 'a1'], ['f2', 'a2']]]],
 
             // fluff that supports the Lang extension
             ['{{=}}'                        , ['h'=>'=']],
-            ['{{handler @key}}'             , ['h'=>'handler', 'k'=>'@key']],
+            ['{{handler _key_}}'             , ['h'=>'handler', 'k'=>'_key_']],
         ];
     }
 
@@ -277,7 +277,7 @@ class ParserTest extends \PHPUnit_Framework_TestCase
             ['{{# handler key }} {{/ handler key}}'  , ['h'=>'handler', 'k'=>'key']],
             ['{{#handler|f1|f2}} {{/handler}}'       , ['h'=>'handler', 'k'=>null,  'f'=>[['f1'], ['f2']]]],
             ['{{#handler key|f1|f2}} {{/handler}}'   , ['h'=>'handler', 'k'=>'key', 'f'=>[['f1'], ['f2']]]],
-            ['{{#h k|f1.a1|f2.a2}} {{/h}}'           , ['h'=>'h', 'k'=>'k', 'f'=>[['f1', 'a1'], ['f2', 'a2']]]],
+            ['{{#h k|f1 a1|f2 a2}} {{/h}}'           , ['h'=>'h', 'k'=>'k', 'f'=>[['f1', 'a1'], ['f2', 'a2']]]],
         ];
     }
 
@@ -309,7 +309,7 @@ class ParserTest extends \PHPUnit_Framework_TestCase
             "{{# <sym> key}}{{/ <sym> key}}",
         ];
 
-        $symbols = str_split(str_replace('\\', '', trim(\Tempe\Parser::$handlerSymbols, '[]')));
+        $symbols = str_split(str_replace('\\', '', '='));
 
         $tests = [];
         foreach ($templates as $tpl) {

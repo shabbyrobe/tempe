@@ -12,24 +12,28 @@ class Helper
         echo str_repeat("  ", $depth * 2);
         echo static::nodeName($node->t).":   ";
         foreach (get_object_vars($node) as $k=>$v) {
-            if ($k == 'c' || $k == 't')
+            if ($k == 'c' || $k == 't') {
                 continue;
-            if (is_string($v) && strlen($v) > 40)
+            }
+            if (is_string($v) && strlen($v) > 40) {
                 $v = substr($v, 0, 40).'...';
+            }
             echo "$k=".json_encode($v)."   ";
         }
         echo "\n";
 
         if (isset($node->c) && $recurse) {
-            foreach ($node->c as $node)
+            foreach ($node->c as $node) {
                 self::dumpTree($node, $recurse, $depth+1);
+            }
         }
     }
 
     static function nodeName($t)
     {
-        if ($t instanceof \stdClass)
+        if ($t instanceof \stdClass) {
             $t = $t->t;
+        }
 
         switch ($t) {
         case Renderer::P_ROOT:

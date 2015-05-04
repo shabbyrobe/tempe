@@ -99,7 +99,7 @@ class RendererTest extends \PHPUnit_Framework_TestCase
 
     function testRenderValueHandlerClassFilter()
     {
-        $tpl = '{{h key|f.x}}';
+        $tpl = '{{h key|f x}}';
         $renderer = new Renderer;
         $renderer->valueHandlers['h'] = function($scope, $key) { return "value"; };
         
@@ -109,12 +109,12 @@ class RendererTest extends \PHPUnit_Framework_TestCase
 
     function testRenderValueHandlerClassFilterDoesntNest()
     {
-        $tpl = '{{h key|f.x.x}}';
+        $tpl = '{{h key|f x x}}';
         $renderer = new Renderer;
         $renderer->valueHandlers['h'] = function($scope, $key) { return "value"; };
 
         $renderer->filters['f'] = new TestFilter;
-        $this->assertEquals('x.x(value)', $renderer->render($tpl));
+        $this->assertEquals('x x(value)', $renderer->render($tpl));
     }
 
     function testRenderBlockHandlerNoKeyNoFilter()
@@ -178,7 +178,7 @@ class RendererTest extends \PHPUnit_Framework_TestCase
 
     function testRenderBlockHandlerClassFilter()
     {
-        $tpl = '{{#h key|f.x}}{{/h}}';
+        $tpl = '{{#h key|f x}}{{/h}}';
         $renderer = new Renderer;
         $renderer->blockHandlers['h'] = function($scope, $key) { return "value"; };
         
@@ -188,12 +188,12 @@ class RendererTest extends \PHPUnit_Framework_TestCase
 
     function testRenderBlockHandlerClassFilterDoesntNest()
     {
-        $tpl = '{{#h key|f.x.x}}{{/h}}';
+        $tpl = '{{#h key|f x x}}{{/h}}';
         $renderer = new Renderer;
         $renderer->blockHandlers['h'] = function($scope, $key) { return "value"; };
 
         $renderer->filters['f'] = new TestFilter;
-        $this->assertEquals('x.x(value)', $renderer->render($tpl));
+        $this->assertEquals('x x(value)', $renderer->render($tpl));
     }
 
     function testRenderBlockCapturesContents()

@@ -8,8 +8,8 @@ class Parser
     const M_STRING = 1;
     const M_TAG = 2;
 
-    public static $identifierPattern = '[a-zA-Z\d_]([a-zA-Z_\/\.\-\d]*[a-zA-Z\d])*';
-    public static $handlerSymbols = '[\$%&\*\+,\-\.:;\<=\>\?\@]';
+    public static $identifierPattern = '[a-zA-Z\d_]([a-zA-Z_\/\.\-\d]*[a-zA-Z\d_])*';
+    public static $filterPattern     = '[a-zA-Z\d][a-zA-Z\d]*';
 
     function tokenise($in)
     {
@@ -22,8 +22,9 @@ class Parser
 
     function parse($tokens)
     {
-        if (!is_array($tokens))
+        if (!is_array($tokens)) {
             $tokens = $this->tokenise($tokens);
+        }
 
         $line = 1;
         $tree = (object)['t'=>Renderer::P_ROOT, 'c'=>[], 'l'=>$line];
@@ -43,8 +44,9 @@ class Parser
             $current = $tokens[$i++];
             $isNewline = ($current[0] == "\r" || $current[0] == "\n");
 
-            if ($isNewline)
+            if ($isNewline) {
                 ++$line;
+            }
 
             switch ($currentMode) {
             case self::M_STRING:
@@ -81,9 +83,9 @@ class Parser
                         (?P<type>[\#/])?
                         \s*
                         (?:
-                            (?P<handler>('.static::$handlerSymbols.'|('.static::$identifierPattern.')))
-                            (\s+(?P<key>\@?'.static::$identifierPattern.'))?
-                            (?P<filters>(\s*\|\s*'.static::$identifierPattern.')+)?
+                            (?P<handler>(=|('.static::$identifierPattern.')))
+                            (\s+(?P<key>'.static::$identifierPattern.'))?
+                            (?P<filters>(\s*\|(\s*'.static::$filterPattern.')+)+)?
                             \s*
                         )?
                         \}\}$~x', 
@@ -101,7 +103,7 @@ class Parser
                         : []
                     ;
                     foreach ($filters as &$f) {
-                        $f = explode('.', $f, 2); 
+                        $f = preg_split('/\s+/', $f, 2); 
                     }
 
                     if (isset($match['type']) && $match['type']) {
@@ -113,9 +115,9 @@ class Parser
                             $stack[++$stackIdx] = $node;
                         }
                         elseif ($match['type'] == '/') {
-                            if (isset($match['filters']))
+                            if (isset($match['filters'])) {
                                 throw new ParseException("Handler close on line {$line} contained filters");
-
+                            }
                             $node->vc = $match[0];
                             if ($handler != $node->h) {
                                 throw new ParseException(
@@ -149,10 +151,12 @@ class Parser
             }
         }
 
-        if ($currentMode == self::M_TAG)
+        if ($currentMode == self::M_TAG) {
             throw new ParseException("Tag close mismatch, open was on line $bufferLine");
-        if ($node != $tree)
+        }
+        if ($node != $tree) {
             throw new ParseException("Unclosed block {$node->h}({$node->k}) on line {$node->l}");
+        }
 
         if ($buffer) {
             $node->c[] = (object)[
@@ -173,11 +177,12 @@ class Parser
         while (true) {
             $current = isset($stackNode->n->c[$stackNode->i]) ? $stackNode->n->c[$stackNode->i] : null;
             if (!$current) {
-                if ($stackIdx <= 0)
+                if ($stackIdx <= 0) {
                     break;
-                
-                if ($stackNode->n->t == Renderer::P_BLOCK)
+                }
+                if ($stackNode->n->t == Renderer::P_BLOCK) {
                     $out .= $stackNode->n->vc;
+                }
                 $stackNode = $stack[--$stackIdx];
             }
             else {

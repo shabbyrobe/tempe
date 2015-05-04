@@ -25,8 +25,7 @@ class WebEscaper
     {
         if (is_array($input)) {
             return http_build_query($input, null, '&');
-        }
-        else {
+        } else {
             return rawurlencode($input);
         }
     }
@@ -35,8 +34,9 @@ class WebEscaper
     {
         $out = htmlspecialchars($string, ENT_QUOTES | ENT_SUBSTITUTE, $this->charset);
 
-        if ($string && !$out)
+        if ($string && !$out) {
             throw new \InvalidArgumentException("Escaping $string failed");
+        }
 
         return $out;
     }
@@ -75,9 +75,9 @@ class WebEscaper
         // so this will remove any number of trailing dashes (i.e. if
         // $string = "- - - - - ", the result will be an empty string.
         $string = trim($string);
-        if (!$string)
+        if (!$string) {
             return;
-
+        }
         $string = preg_replace_callback(
             "/-+/",
             function($match) { return trim(str_repeat("- ", strlen($match[0]))); },
@@ -94,9 +94,9 @@ class WebEscaper
      */
     public function cssString($string)
     {
-        if (!$string)
+        if (!$string) {
             return $string;
-
+        }
         return strtr($string, [
             // control chars
             "\b" => "\\08 ",
@@ -175,8 +175,7 @@ class WebEscaper
 
         if (is_string($value) || is_bool($value)) {
             return $this->jsonEncode($value);
-        }
-        elseif (is_numeric($value) || (is_object($value) && method_exists($value, '__toString'))) {
+        } elseif (is_numeric($value) || (is_object($value) && method_exists($value, '__toString'))) {
             return $this->jsonEncode((string) $value);
         }
 
@@ -194,20 +193,21 @@ class WebEscaper
      */
     public function js($string)
     {
-        if ($string === '' || $string === false || $string === null)
+        if ($string === '' || $string === false || $string === null) {
             return "";
+        }
 
         // this also applies __toString()
         $string = (string) $string;
         if (is_string($string)) {
-             $encoded = substr($this->jsonEncode($string), 1, -1);
+            $encoded = substr($this->jsonEncode($string), 1, -1);
 
             // json_encode only escapes double-quotes. escape singles by hand instead
             // of JSON_HEX_APOS in case old handsets don't like \u0027 (still need to
             // verify)
-             return strtr($encoded, [
-                 "'"=>"\\'",
-             ]);
+            return strtr($encoded, [
+                "'"=>"\\'",
+            ]);
         }
 
         throw new \InvalidArgumentException("String or number required. Found: ".\DebugHelper::getType($string));
@@ -223,7 +223,6 @@ class WebEscaper
         if (!is_array($escapers)) {
             $escapers = array_slice(func_get_args(), 1);
         }
-
         foreach ($escapers as $e) {
             $value = call_user_func([$this, $e], $value);
         }

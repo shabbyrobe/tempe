@@ -16,10 +16,10 @@ generic language which provides semantics which will appear somewhat familiar to
 And so, on to the canonical example. Using the basic web templating language, a typical Tempe
 template::
 
-    Hello {{= name | as.html}}
-    You have just won {{= value}} dollars!
+    Hello {{ var name | as html }}
+    You have just won {{ var value }} dollars!
     {{#if in_ca}}
-    Well, {{= taxed_value}} dollars, after taxes.
+    Well, {{ var taxed_value }} dollars, after taxes.
     {{/if in_ca}}
 
 Given the following hash::
@@ -85,15 +85,20 @@ Block tags look like this::
     {{# handler | filter }}{{/ handler }}
     {{# handler key | filter | filter }}{{/ handler }}
 
-Tags contain **identifiers** which are separated by whitespace and/or pipe characters
-(``|``), and which must satisfy the following regex::
+Tags contain handlers and keys which are separated by whitespace and/or pipe characters
+(``|``), and which must satisfy the following regex. These are henceforth referred to as
+*identifiers*::
 
-    [a-zA-Z\d_]([a-zA-Z_\/\.\-\d]*[a-zA-Z\d])*
+    [a-zA-Z\d_]([a-zA-Z_\/\.\-\d]*[a-zA-Z\d_])*
 
-The exception to this is the ``handler`` portion, which can either be an identifier or
-*one and only one* of the following symbols::
+There are some exceptions - the handler may be a single ``=`` symbol, although this has been
+removed in version 2 and is deprecated in version 1.1. All uses of the ``=`` symbol should
+be replaced with the ``var`` handler.
 
-    $%&*+,-.:;<=>?@
+Filters must satisfy a more restricted pattern, which is again relaxed in Tempe 2::
+
+    [a-zA-Z\d][a-zA-Z\d]*
+
 
 Whitespace inside tags between symbols is ignored. ``{{handler key|filter|filter}}`` is
 identical to ``{{  handler  key  |  filter  |  filter  }}``
@@ -125,11 +130,8 @@ You can simulate template comments by using an empty block::
 .. warning::
 
     The canonical example in the introduction demonstrates the use of the value tag
-    ``{{= key}}`` to place the value of ``key`` into the output. 
+    ``{{ var key }}`` to place the value of ``key`` into the output. 
     
-    ``{{=`` is **not** a Tempe primitive; ``=`` is actually a ``handler`` which is
-    registered by the basic templating language extension.
-
 
 Value Tags
 ~~~~~~~~~~
@@ -232,19 +234,19 @@ It contains no identifiers and allows no whitespace.
 It is not necessary to escape a single curly brace except to disambiguate it from a tag
 opening. The following does not require escaping::
 
-    {"json": {"yep": {{= key | as.js }} }}
+    {"json": {"yep": {{ var key | as js }} }}
 
 But this example does::
 
-    {"json": {;{{= key | as.js }}: "yep" }}
+    {"json": {;{{ var key | as js }}: "yep" }}
 
 
 Cut To The Chase. I Just Wanna Make Templates
 ---------------------------------------------
 
 The simplest way to get started making web templates is to use the basic bundled web
-language. You get ``if``, ``each`` and ``=`` handlers for free (along with a few others),
-as well as the String and Escaper extensions for good measure.
+language. You get ``if``, ``each`` and ``var`` handlers for free (along with a few
+others), as well as the String and Escaper extensions for good measure.
 
 Instantiating is easy:
 
@@ -259,12 +261,12 @@ Instantiating is easy:
 
 The basic language is made up of the following handlers:
 
-- ``{{= key}}``: Echo the variable at ``key``
-- ``{{# if key}}{{/if}}``: Conditionally display a block
-- ``{{# not key}}{{/not}}``: Conditionally display a block (inverse ``if``)
-- ``{{# each key}}{{/each}}``: Iterate over ``key``
-- ``{{# block key}}{{/block}}``: Capture a block into ``key``, or filter a block's contents
-- ``{{# push key}}{{push}}``: Push a scope onto the stack
+- ``{{ var key }}``: Echo the variable at ``key``
+- ``{{# if key }} {{/if}}``: Conditionally display a block
+- ``{{# not key }} {{/not}}``: Conditionally display a block (inverse ``if``)
+- ``{{# each key }} {{/each}}``: Iterate over ``key``
+- ``{{# block key }} {{/block}}``: Capture a block into ``key``, or filter a block's contents
+- ``{{# push key }} {{/push}}``: Push a scope onto the stack
 
 Some basic filter sets are provided as well:
 
@@ -283,19 +285,19 @@ Some basic filter sets are provided as well:
     bad idea.
 
 
-``{{= key}}``: Echo a variable
+``{{ var key }}``: Echo a variable
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Value handler which output the variable ``key`` from the current scope::
 
-    {{= key}}
+    {{ var key }}
 
 Example:
 
 .. code-block:: php
 
     <?php
-    $tmpl = "{{= foo}} {{= bar | upper}}";
+    $tmpl = "{{var foo}} {{var bar | upper}}";
     $vars = ['foo'=>'hello', 'bar'=>'world'];
     echo $renderer->render($tmpl, $vars);
 
@@ -373,7 +375,7 @@ Output::
 
 The ``each`` handler allows looping over an array::
 
-    {{# each key}}{{= @value}}{{/each}}
+    {{# each key}}{{ var _value_ }}{{/each}}
 
 The contents will be rendered once for each element in the array.
 
@@ -382,7 +384,7 @@ Example:
 .. code-block:: php
     
     <?php
-    $tmpl = "{{# each list}}var1 = {{= var1}}, var2 = {{= var2}}\n{{/each}}";
+    $tmpl = "{{# each list}}var1 = {{var var1}}, var2 = {{var var2}}\n{{/each}}";
     $vars = [
         'list'=>[
             ['var1'=>'foo', 'var2'=>'bar'],
@@ -399,11 +401,11 @@ Output::
 
 The following metavariables are made available in the scope:
 
-- ``@key`` -  The current array key
-- ``@value`` - The current array value
-- ``@first`` - Boolean indicating whether this is the first iteration
-- ``@idx`` -  0-based numeric index of current iteration
-- ``@num`` -  1-based numeric index of current iteration
+- ``_key_`` -  The current array key
+- ``_value_`` - The current array value
+- ``_first_`` - Boolean indicating whether this is the first iteration
+- ``_idx_`` -  0-based numeric index of current iteration
+- ``_num_`` -  1-based numeric index of current iteration
 
 
 A new scope is created which is popped when the block exits. If the list element is an
@@ -412,9 +414,9 @@ array, it is merged with the current scope:
 .. code-block:: php
 
     <?php
-    $tmpl = "{{= var }} {{# each list }} {{= var }} {{/each}} {{= var }}";
+    $tmpl = "{{var x}} {{# each list}} {{var x}} {{/each}} {{var x}}";
     $vars = [
-        'var'=>'foo',
+        'var'=>'x',
         'list'=>[['var'=>'bar'], ['var'=>'baz']],
     ];
     echo $renderer->render($tmpl, $vars);
@@ -428,12 +430,12 @@ Joining strings
 ^^^^^^^^^^^^^^^
 
 There is no ``join`` or ``implode`` function, but you can simulate joining simply by
-checking if the element is ``#not`` the ``@first``:
+checking if the element is ``#not`` the ``_first_``:
 
 .. code-block:: php
 
     <?php
-    $tmpl = "{{# each list}}{{#not @first}}, {{/not}}{{= @value }}{{/each}}";
+    $tmpl = "{{# each list}}{{# not _first_}}, {{/not}}{{var _value_}}{{/each}}";
     $vars = [
         'list'=>['foo', 'bar', 'baz', 'qux'],
     ];
@@ -460,7 +462,7 @@ be applied to the result.
     <?php
     $tmpl = "
     Before capture: {{# block foo | upper}}hello{{/block}}
-    After capture: {{= foo}}
+    After capture: {{var foo}}
     Filter: {{# block | upper}}hello{{/block}}
     ";
     echo $renderer->render($tmpl);
@@ -486,18 +488,18 @@ The scope is popped when the block exits.
     $tmpl = 
         "{{#push first}}".
             "{{# push second}}".
-                "{{= all}} {{= var}} ".
+                "{{var all}} {{var str}} ".
             "{{/ push}}".
-            "{{= all}} {{= var}} ".
+            "{{var all}} {{var str}} ".
         "{{/ push}}".
-        "{{= all}} {{= var}}"
+        "{{var all}} {{var str}}"
     ;
     $vars = [
         'all'=>'z',
-        'var'=>'a',
+        'str'=>'a',
         'first'=>[
-            'var'=>'b',
-            'second'=>['var'=>'c'],
+            'str'=>'b',
+            'second'=>['str'=>'c'],
         ],
     ];
     echo $renderer->render($tmpl, $vars);
@@ -517,31 +519,31 @@ focus.
 Each filter method should be used to represent the context of the output and should
 *always come last in the filter sequence*
 
-``| as.html``
-    Inside an HTML element, i.e. ``<p>{{= foo | as.html}}</p>``.
+``| as html``
+    Inside an HTML element, i.e. ``<p>{{var foo | as html}}</p>``.
 
-``| as.htmlAttr``
+``| as htmlAttr``
     Inside a quoted (single or double) HTML attribute, i.e. 
-    ``<div class="{{= foo | as.htmlAttr}}">``
+    ``<div class="{{var foo | as htmlAttr}}">``
 
-``| as.urlQuery``
+``| as urlQuery``
     Inside a URL. If the value returned by the handler is an associative array, it will be
     turned into a query string, i.e. ``foo=bar&baz=qux``. If it is a string, it will be
     ``%`` encoded.
     
     If the URL is intended to be output into an HTML document, you will need to chain it
-    with one of the other escapers, i.e. ``<a href="page.html?foo={{= bar |
-    as.urlQuery | as.htmlAttr}}">``
+    with one of the other escapers, i.e. ``<a href="page.html?foo={{var bar |
+    as urlQuery | as htmlAttr}}">``
 
-``| as.js``
+``| as js``
     Inside a quoted (single or double) Javascript string.
-    i.e. ``var foo = "foo {{= bar | as.js}} baz";``
+    i.e. ``var foo = "foo {{var bar | as js}} baz";``
 
-``| as.htmlComment``
-    Inside an HTML comment: ``<!-- {{= foo | as.htmlComment}} -->``
+``| as htmlComment``
+    Inside an HTML comment: ``<!-- {{var foo | as htmlComment}} -->``
 
-``| as.unquotedHtmlAttr``
-    Inside an unquoted HTML attribute: ``<a href={{= foo | as.unquotedHtmlAttr}} class=foo>``
+``| as unquotedHtmlAttr``
+    In ide an unquoted HTML attribute: ``<a href={{var foo | as unquotedHtmlAttr}} class=foo>``
 
 
 String Filters

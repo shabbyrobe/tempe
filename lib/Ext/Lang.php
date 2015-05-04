@@ -7,6 +7,10 @@ class Lang
 
     function __construct($options=[])
     {
+        if (!isset($options['useEquals'])) {
+            $options['useEquals'] = true;
+        }
+
         if (isset($options['allowUnsetKeys'])) {
             $this->allowUnsetKeys = $options['allowUnsetKeys'] == true;
             unset($options['allowUnsetKeys']);
@@ -16,8 +20,7 @@ class Lang
         if (isset($options['blocks'])) {
             if ($options['blocks']) {
                 $blocks = $options['blocks'] + $blocks;
-            }
-            else {
+            } else {
                 foreach ($blocks as &$v) $v = false;
             }
             unset($options['blocks']);
@@ -28,16 +31,18 @@ class Lang
         if ($blocks['if']) {
             $id = $blocks['if'] === true ? 'if' : $blocks['if'];
             $this->blockHandlers[$id] = function(&$scope, $key, $renderer, $node) {
-                if (isset($scope[$key]) && $scope[$key])
+                if (isset($scope[$key]) && $scope[$key]) {
                     return $renderer->renderTree($node, $scope);
+                }
             };
         }
 
         if ($blocks['not']) {
             $id = $blocks['not'] === true ? 'not' : $blocks['not'];
             $this->blockHandlers[$id] = function(&$scope, $key, $renderer, $node) {
-                if (!isset($scope[$key]) || !$scope[$key])
+                if (!isset($scope[$key]) || !$scope[$key]) {
                     return $renderer->renderTree($node, $scope);
+                }
             };
         }
 
@@ -45,16 +50,17 @@ class Lang
             $id = $blocks['each'] === true ? 'each' : $blocks['each'];
             $this->blockHandlers[$id] = function(&$scope, $key, $renderer, $node) {
                 if (!isset($scope[$key])) {
-                    if (!$this->allowUnsetKeys)
+                    if (!$this->allowUnsetKeys) {
                         throw new \Tempe\RenderException("Unknown variable $key");
-                    else
+                    } else {
                         return;
+                    }
                 }
 
                 $out = '';
                 $idx = 0;
                 foreach ($scope[$key] as $key=>$item) {
-                    $kv = ['@key'=>$key, '@value'=>$item, '@first'=>$idx == 0, '@idx'=>$idx, '@num'=>$idx+1];
+                    $kv = ['_key_'=>$key, '_value_'=>$item, '_first_'=>$idx == 0, '_idx_'=>$idx, '_num_'=>$idx+1];
                     $curScope = is_array($item) ? array_merge($scope, $item, $kv) : $kv;
                     $out .= $renderer->renderTree($node, $curScope);
                     $idx++;
@@ -67,10 +73,11 @@ class Lang
             $id = $blocks['block'] === true ? 'block' : $blocks['block'];
             $this->blockHandlers[$id] = function(&$scope, $key, $renderer, $node) {
                 $out = $renderer->renderTree($node, $scope);
-                if ($key)
+                if ($key) {
                     $scope[$key] = $out;
-                else
+                } else {
                     return $out;
+                }
             };
         }
 
@@ -78,10 +85,11 @@ class Lang
             $id = $blocks['push'] === true ? 'push' : $blocks['push'];
             $this->blockHandlers[$id] = function(&$scope, $key, $renderer, $node) {
                 if (!isset($scope[$key])) {
-                    if (!$this->allowUnsetKeys)
+                    if (!$this->allowUnsetKeys) {
                         throw new \Tempe\RenderException("Unknown variable $key");
-                    else
+                    } else {
                         return;
+                    }
                 }
 
                 $newScope = $scope;
@@ -92,13 +100,19 @@ class Lang
         }
 
         $this->valueHandlers = [
-            '='=>function(&$scope, $key) {
-                if (isset($scope[$key]))
+            'var'=>function(&$scope, $key) {
+                if (isset($scope[$key])) {
                     return $scope[$key];
-                elseif (!$this->allowUnsetKeys)
+                } elseif (!$this->allowUnsetKeys) {
                     throw new \Tempe\RenderException("Unknown variable $key");
+                }
             },
         ];
+
+        if ($options['useEquals']) {
+            $this->valueHandlers['='] = $this->valueHandlers['var'];
+        }
+        unset($options['useEquals']);
 
         if ($options) {
             throw new \InvalidArgumentException("Unknown options: ".implode(', ', array_keys($options)));

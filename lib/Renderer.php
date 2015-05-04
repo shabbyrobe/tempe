@@ -20,8 +20,9 @@ class Renderer
         $this->extensions = $extensions; 
         $this->parser = $parser ?: new Parser;
 
-        foreach ($this->extensions as $e)
+        foreach ($this->extensions as $e) {
             $this->addExtension($e);
+        }
     }
 
     static function createBasic($options=[])
@@ -45,26 +46,29 @@ class Renderer
     {
         $e = (object) $e;
         if (isset($e->blockHandlers)) {
-            foreach ($e->blockHandlers as $k=>$h)
+            foreach ($e->blockHandlers as $k=>$h) {
                 $this->blockHandlers[$k] = $h;
+            }
         }
 
         if (isset($e->valueHandlers)) {
-            foreach ($e->valueHandlers as $k=>$h)
+            foreach ($e->valueHandlers as $k=>$h) {
                 $this->valueHandlers[$k] = $h;
+            }
         }
 
         if (isset($e->filters)) {
-            foreach ($e->filters as $k=>$h)
+            foreach ($e->filters as $k=>$h) {
                 $this->filters[$k] = $h;
+            }
         }
     }
 
     public function render($template, &$vars=[])
     {
-        if (!is_string($template))
+        if (!is_string($template)) {
             throw new \InvalidArgumentException("Render expects string. Did you mean renderTree()?");
-
+        }
         $tree = $this->parser->parse($template);
         return $this->renderTree($tree, $vars); 
     }
@@ -79,20 +83,21 @@ class Renderer
             elseif ($node->t == self::P_VALUE || $node->t == self::P_BLOCK) {
                 $val = null;
 
-                if (!$node->h)
+                if (!$node->h) {
                     continue;
+                }
 
                 if ($node->t == self::P_VALUE) {
-                    if (!isset($this->valueHandlers[$node->h]))
+                    if (!isset($this->valueHandlers[$node->h])) {
                         $this->raise("Unknown value handler {$node->h}", $node);
-
+                    }
                     $h = $this->valueHandlers[$node->h];
                     $val = $h($vars, $node->k, $this, $node);
                 }
                 else {
-                    if (!isset($this->blockHandlers[$node->h]))
+                    if (!isset($this->blockHandlers[$node->h])) {
                         $this->raise("Unknown block handler {$node->h}", $node);
-
+                    }
                     $h = $this->blockHandlers[$node->h];
                     $val = $h($vars, $node->k, $this, $node);
                 }
@@ -102,13 +107,14 @@ class Renderer
                         $filter = $f[0];
                         $method = isset($f[1]) ? $f[1] : null;
                         
-                        if (!isset($this->filters[$filter]))
+                        if (!isset($this->filters[$filter])) {
                             $this->raise("Unknown filter {$filter}", $node);
-
-                        if ($method)
+                        }
+                        if ($method) {
                             $val = $this->filters[$filter]->$method($val);
-                        else
+                        } else {
                             $val = $this->filters[$filter]($val);
+                        }
                     }
                 }
 
