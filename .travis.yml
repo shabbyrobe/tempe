@@ -6,11 +6,13 @@ php:
   - "5.4"
   - "5.3"
   - "hhvm"
+  - "nightly"
 
 branches:
   only:
     - master
     - develop
+    - /^release\/.*$/
 
 install:
   - composer install
@@ -21,4 +23,5 @@ script:
 matrix:
   allow_failures:
     - php: "5.3"
+    - php: "nightly"
 
