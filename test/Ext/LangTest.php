@@ -15,13 +15,16 @@ class LangTest extends \PHPUnit_Framework_TestCase
     function testConstructEnablesAllBlocksByDefault()
     {
         $c = new Ext\Lang();
-        $this->assertEquals(['if', 'not', 'each', 'block', 'push'], array_keys($c->blockHandlers));
+        $this->assertEquals(['if', 'not', 'each', 'block', 'set', 'push'], array_keys($c->blockHandlers));
     }
 
     function testConstructDisableSpecificBlocks()
     {
         $c = new Ext\Lang(['blocks'=>['each'=>false, 'block'=>false, 'push'=>false]]);
-        $this->assertEquals(['if', 'not'], array_keys($c->blockHandlers));
+        $keys = $c->blockHandlers;
+        $this->assertArrayNotHasKey('each', $keys);
+        $this->assertArrayNotHasKey('block', $keys);
+        $this->assertArrayNotHasKey('push', $keys);
     }
 
     function testConstructDisablesAllBlocksWhenOptionFalse()

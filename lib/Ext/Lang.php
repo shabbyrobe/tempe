@@ -7,21 +7,20 @@ class Lang
 
     function __construct($options=[])
     {
-        if (!isset($options['useEquals'])) {
-            $options['useEquals'] = true;
-        }
-
         if (isset($options['allowUnsetKeys'])) {
             $this->allowUnsetKeys = $options['allowUnsetKeys'] == true;
             unset($options['allowUnsetKeys']);
         }
 
-        $blocks = ['if'=>true, 'not'=>true, 'each'=>true, 'block'=>true, 'push'=>true];
+        $blocks = ['if'=>true, 'not'=>true, 'each'=>true, 'block'=>true, 'push'=>true, 'set'=>true];
         if (isset($options['blocks'])) {
             if ($options['blocks']) {
                 $blocks = $options['blocks'] + $blocks;
-            } else {
-                foreach ($blocks as &$v) $v = false;
+            }
+            else {
+                foreach ($blocks as &$v) {
+                    $v = false;
+                }
             }
             unset($options['blocks']);
         }
@@ -81,6 +80,17 @@ class Lang
             };
         }
 
+        if ($blocks['set']) {
+            $id = $blocks['set'] === true ? 'set' : $blocks['set'];
+            $this->blockHandlers[$id] = function(&$scope, $key, $renderer, $node) {
+                $out = $renderer->renderTree($node, $scope);
+                if (!$key) {
+                    throw new \Tempe\RenderException("Set requires key");
+                }
+                $scope[$key] = $out;
+            };
+        }
+
         if ($blocks['push']) {
             $id = $blocks['push'] === true ? 'push' : $blocks['push'];
             $this->blockHandlers[$id] = function(&$scope, $key, $renderer, $node) {
@@ -100,7 +110,7 @@ class Lang
         }
 
         $this->valueHandlers = [
-            'var'=>function(&$scope, $key) {
+            'get'=>function(&$scope, $key) {
                 if (isset($scope[$key])) {
                     return $scope[$key];
                 } elseif (!$this->allowUnsetKeys) {
@@ -109,10 +119,8 @@ class Lang
             },
         ];
 
-        if ($options['useEquals']) {
-            $this->valueHandlers['='] = $this->valueHandlers['var'];
-        }
-        unset($options['useEquals']);
+        // support tempe 1 to 2 bridge
+        $this->valueHandlers['=']   = $this->valueHandlers['get'];
 
         if ($options) {
             throw new \InvalidArgumentException("Unknown options: ".implode(', ', array_keys($options)));

@@ -24,7 +24,7 @@ class AcceptanceTest extends \PHPUnit_Framework_TestCase
 
     function testEachAssocArray()
     {
-        $tpl = "{{#each foo}}{{var a1}} {{var a2}}\n{{/each}}";
+        $tpl = "{{#each foo}}{{get a1}} {{get a2}}\n{{/each}}";
         $expected = "foo bar\nbaz qux\n";
         $initialVars = $vars = [
             'foo'=>[
@@ -41,7 +41,7 @@ class AcceptanceTest extends \PHPUnit_Framework_TestCase
 
     function testEachNumericArray()
     {
-        $tpl = "{{#each foo}}{{var 0}} {{var 1}}\n{{/each}}";
+        $tpl = "{{#each foo}}{{get 0}} {{get 1}}\n{{/each}}";
         $expected = "foo bar\nbaz qux\n";
         $initialVars = $vars = [
             'foo'=>[
@@ -58,7 +58,7 @@ class AcceptanceTest extends \PHPUnit_Framework_TestCase
 
     function testEachMetaVars()
     {
-        $tpl = "{{#each foo}}{{var _idx_}}|{{var _num_}}) {{var _key_}} => {{var _value_}}\n{{/each}}";
+        $tpl = "{{#each foo}}{{get _idx_}}|{{get _num_}}) {{get _key_}} => {{get _value_}}\n{{/each}}";
         $expected = "0|1) a => foo\n1|2) b => bar\n2|3) c => baz\n";
         $initialVars = $vars = [
             'foo'=>[
@@ -76,7 +76,7 @@ class AcceptanceTest extends \PHPUnit_Framework_TestCase
 
     function testBlock()
     {
-        $tpl = "{{#block hello}}world{{/block}}{{var hello}}";
+        $tpl = "{{#block hello}}world{{/block}}{{get hello}}";
         $expected = "world";
         $r = $this->getRenderer();
         $this->assertEquals($expected, $r->render($tpl, $vars));
@@ -97,13 +97,24 @@ class AcceptanceTest extends \PHPUnit_Framework_TestCase
     /** @depends testBlock */
     function testBlockKeyIgnoresFilters()
     {
-        $tpl = "{{#block hello | strtoupper}}world {{var foo}}{{/block}}{{var hello}}";
+        $tpl = "{{#block hello | strtoupper}}world {{get foo}}{{/block}}{{get hello}}";
         $expected = "world pants";
         $r = $this->getRenderer();
         $r->filters['strtoupper'] = 'strtoupper';
         $vars = ['foo'=>'pants'];
         $this->assertEquals($expected, $r->render($tpl, $vars));
         $this->assertEquals(['foo'=>'pants', 'hello'=>'world pants'], $vars);
+    }
+
+    function testSet()
+    {
+        $tpl = "{{#set hello}}world{{/set}}{{get hello}}";
+        $expected = "world";
+        $r = $this->getRenderer();
+        $r->filters['strtoupper'] = 'strtoupper';
+        $vars = [];
+        $this->assertEquals($expected, $r->render($tpl, $vars));
+        $this->assertEquals(['hello'=>'world'], $vars);
     }
 
     /** @depends testBlock */
@@ -119,7 +130,7 @@ class AcceptanceTest extends \PHPUnit_Framework_TestCase
     /** @depends testBlock */
     function testBlockOverwrites()
     {
-        $tpl = "{{#block hello}}world{{/block}}{{#block hello}}pants{{/block}}{{var hello}}";
+        $tpl = "{{#block hello}}world{{/block}}{{#block hello}}pants{{/block}}{{get hello}}";
         $expected = "pants";
         $r = $this->getRenderer();
         $this->assertEquals($expected, $r->render($tpl, $vars));
@@ -129,7 +140,7 @@ class AcceptanceTest extends \PHPUnit_Framework_TestCase
     /** @depends testBlock */
     function testBlockInsideEachDoesntEscape()
     {
-        $tpl = "In: {{#each foo}}{{#block hello}}world{{/block}}{{var hello}}{{/each}}, Out: {{var hello}}";
+        $tpl = "In: {{#each foo}}{{#block hello}}world{{/block}}{{get hello}}{{/each}}, Out: {{get hello}}";
         $expected = "In: worldworld, Out: ";
         $initialVars = $vars = [
             'foo'=>['a'=>'foo', 'b'=>'bar'],
@@ -143,7 +154,7 @@ class AcceptanceTest extends \PHPUnit_Framework_TestCase
 
     function testPushAssocArray()
     {
-        $tpl = "{{#push foo}}{{var bar}}{{/push}} {{var bar}}";
+        $tpl = "{{#push foo}}{{get bar}}{{/push}} {{get bar}}";
         $expected = "inner outer";
         $initialVars = $vars = [
             'foo'=>['bar'=>'inner'],
@@ -156,7 +167,7 @@ class AcceptanceTest extends \PHPUnit_Framework_TestCase
 
     function testPushNumericArray()
     {
-        $tpl = "{{#push foo}}{{var 0}} {{var 1}}{{/push}}";
+        $tpl = "{{#push foo}}{{get 0}} {{get 1}}{{/push}}";
         $expected = "bar baz";
         $initialVars = $vars = [
             'foo'=>['bar', 'baz'],
