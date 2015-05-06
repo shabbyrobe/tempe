@@ -232,13 +232,13 @@ Display a block if variable ``foo`` is truthy::
 
 Display a block if variable ``foo`` is equal to the **value** ``hello``::
 
-    {{# get foo | eqval hello | show }}Hello!{{/}}
+    {{# get foo | eq hello | show }}Hello!{{/}}
 
 Display a block if variable ``foo`` is **not** equal to the **value** ``hello``::
 
-    {{# get foo | eqval hello | not | show }}Goodbye!{{/}}
+    {{# get foo | eq hello | not | show }}Goodbye!{{/}}
 
-``eqval`` is limited to loose comparisons with **identifiers**. Comparisons can be done
+``eq`` is limited to loose comparisons with **identifiers**. Comparisons can be done
 between variables using ``eqvar``::
 
     Given the hash {"foo": "yep", "bar": "yep"}

@@ -12,7 +12,7 @@ class Core
     {
         $this->rules = [
             'get'   => ['argMin'=>0, 'argMax'=>1],
-            'eqval' => ['argc'=>1],
+            'eq'    => ['argc'=>1],
             'eqvar' => ['argc'=>1],
             'not'   => ['argc'=>0],
             'each'  => ['argMin'=>0, 'argMax'=>1, 'allowValue'=>false],
@@ -94,8 +94,8 @@ class Core
             };
         }
 
-        if (isset($this->rules['eqval'])) {
-            $this->handlers['eqval'] = function($handler, $in, $context) {
+        if (isset($this->rules['eq'])) {
+            $this->handlers['eq'] = function($handler, $in, $context) {
                 $yep = $in == $handler->args[0];
                 if ($yep) {
                     return true;

@@ -72,16 +72,16 @@ class ConditionalTest extends \PHPUnit_Framework_TestCase
     }
 
     /**
-     * @dataProvider dataEqVal
+     * @dataProvider dataEq
      */
-    function testEqValShow($l, $r, $yep=true)
+    function testEqShow($l, $r, $yep=true)
     {
         $vars = ['foo'=>$l];
-        $out = $this->renderer->render("{{# get foo | eqval $r | show }}shown{{/}}", $vars);
+        $out = $this->renderer->render("{{# get foo | eq $r | show }}shown{{/}}", $vars);
         $this->assertEquals($yep ? 'shown' : '', $out);
     }
 
-    function dataEqVal()
+    function dataEq()
     {
         return [
             ['a', 'a', true],
@@ -91,11 +91,11 @@ class ConditionalTest extends \PHPUnit_Framework_TestCase
         ];
     }
 
-    function testEqValShortCircuits()
+    function testEqShortCircuits()
     {
         $vars = ['foo'=>'a'];
         $this->renderer->lang->handlers['quack'] = function () { return 'quack'; };
-        $out = $this->renderer->render("{{# get foo | eqval b | quack }}{{/}}", $vars);
+        $out = $this->renderer->render("{{# get foo | eq b | quack }}{{/}}", $vars);
         $this->assertEquals('', $out);
     }
 
