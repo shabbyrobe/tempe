@@ -315,6 +315,149 @@ escapes it, then sets it to another variable::
     Should show "FOO &amp; BAR": {{ get foo }}
  
 
+Handler Reference
+~~~~~~~~~~~~~~~~~
+
+.. note:: The following conventions are used when defining handler syntax:
+   - Anything enclosed in square brackets ``[...]`` is optional.
+
+   - If the handler name is preceded by an argument and a pipe, the handler
+     operates on the pipeline's input. e.g. ``<key> | eat`` would mean that the ``eat``
+     handler takes a ``<key>`` from the input.
+
+
+Tempe provides the following handlers as part of its core language:
+
+``get``
+    Get the value of a key in the current scope.
+
+    Syntax: ``[ <key> | ] get [ <key> ]``
+
+    Output: mixed
+
+    Valid contexts: value, block
+
+    A key is required. The key can be passed as an argument or it can be passed via input. 
+    A key passed via argument takes precedence.
+
+    Lookups can be nested. The following outputs ``hello``::
+
+        render("{{ get foo | get bar }}", ['foo'=>['bar'=>'hello']]);
+
+
+``set``
+    Set the value of a key in the current scope to the input.
+
+    Syntax: ``[ <input> | ] set <key>``
+
+    Output: null
+
+    Valid contexts: value, block
+
+    A ``<key>`` is required.
+    
+    Input always comes from a pipe. If the ``set`` handler is first in a chain, the input
+    will be an empty string.
+    
+
+``eq``
+    Compare the input to an identifier and output true or false.
+
+    Syntax: ``<input> | eq <compare>``
+
+    Output: boolean
+
+    Valid contexts: value, block
+
+    This only allows simple equality comparisons - anything that is allowable as an
+    identifier can be used for ``<compare>``. For more sophisticated equality comparisons,
+    use ``eqvar``.
+
+    This handler is really only useful for influencing other handlers, like ``show``::
+
+        {{# get foo | eq hello | show }} Will show if 'foo'=='hello'! {{/}}
+
+
+``eqvar``
+    Compare the input with the value of a key in the current scope and output true or false.
+
+    Syntax: ``<input> | eqvar <key>``
+
+    Output: boolean
+
+    Valid contexts: value, block
+
+    This allows more complex equality comparisons by fetching the value of ``<key>`` from
+    the current scope.
+    
+    If the comparison value does not exist in the scope, create it::
+
+        {{# set test }}HELLO!.{{/}}
+        {{# get foo | eqvar test | show }}
+            Will show if 'foo' == 'HELLO!'
+        {{/}}
+
+
+``not``
+    Negate the truthiness of the input.
+
+    Syntax: ``<input> | not``
+
+    Output: boolean
+
+    Valid contexts: value, block
+
+    Example::
+        
+        {{# get foo | not | show }}
+            If foo is not truthy, this will show
+        {{/}}
+
+
+``each``
+    Render a block for each item in the input or scope key.
+
+    Syntax:
+    - ``<input> | each``
+    - ``each <key>``
+
+    Output: string (rendered template)
+
+    Valid contexts: block
+
+    The following variables are made available on each iteration:
+    - ``_key_``: Current key
+    - ``_value_``: Current value
+    - ``_idx_``: 0-based index
+    - ``_num_``: 1-based number
+    - ``_first_``: Boolean indicating first item
+
+``as``
+    Escape input using supplied context
+
+    Syntax: ``<input> | as <context>``
+
+    Valid contexts: block
+    
+
+``show``
+    Render a block
+
+    Syntax:
+    - ``<input> | show``
+    - ``show``
+
+
+``push``
+    Push the value of a key onto the current scope for a block and render the block.
+
+    Syntax: ``push <key>``
+
+    Output: string (rendered contents)
+
+    Valid contexts: block
+
+
 String filters
 ~~~~~~~~~~~~~~
 

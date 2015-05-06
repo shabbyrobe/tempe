@@ -12,8 +12,8 @@ class Core
     {
         $this->rules = [
             'get'   => ['argMin'=>0, 'argMax'=>1],
-            'eq'    => ['argc'=>1],
-            'eqvar' => ['argc'=>1],
+            'eq'    => ['first'=>false, 'argc'=>1],
+            'eqvar' => ['first'=>false, 'argc'=>1],
             'not'   => ['argc'=>0],
             'each'  => ['argMin'=>0, 'argMax'=>1, 'allowValue'=>false],
             'as'    => ['argMin'=>1, 'first'=>false],
@@ -96,9 +96,18 @@ class Core
 
         if (isset($this->rules['eq'])) {
             $this->handlers['eq'] = function($handler, $in, $context) {
-                $yep = $in == $handler->args[0];
-                if ($yep) {
-                    return true;
+                if ($in == $handler->args[0]) {
+                    return $in;
+                } else {
+                    $context->break = true;
+                }
+            };
+        }
+
+        if (isset($this->rules['neq'])) {
+            $this->handlers['neq'] = function($handler, $in, $context) {
+                if ($in != $handler->args[0]) {
+                    return $in;
                 } else {
                     $context->break = true;
                 }
@@ -114,11 +123,7 @@ class Core
         if (isset($this->rules['set'])) {
             $this->handlers['set'] = function($handler, $in, $context) {
                 $key = $handler->args[0];
-                if ($context->chainPos == 0 && $context->node->type == \Tempe\Renderer::P_BLOCK) {
-                    $context->scope[$key] = $context->renderer->renderTree($context->node, $context->scope);
-                } else {
-                    $context->scope[$key] = $in;
-                }
+                $context->scope[$key] = $in;
             };
         }
 

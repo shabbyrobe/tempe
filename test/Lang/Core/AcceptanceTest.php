@@ -5,13 +5,14 @@ use Tempe\Ext;
 
 class AcceptanceTest extends \PHPUnit_Framework_TestCase
 {
-    function testBlockSetFirstCaptures()
+    function testBlockSetFirstNulls()
     {
         $tpl = "{{#set hello}}world{{/}}{{get hello}}";
-        $expected = "world";
+        $expected = "";
         $r = $this->getRenderer();
+        $vars = ['hello'=>'WOO'];
         $this->assertEquals($expected, $r->render($tpl, $vars));
-        $this->assertEquals(['hello'=>'world'], $vars);
+        $this->assertEquals(['hello'=>null], $vars);
     }
 
     function testValueSetFailsIfNotLast()
@@ -32,16 +33,6 @@ class AcceptanceTest extends \PHPUnit_Framework_TestCase
         $r->render($tpl, $vars);
     }
 
-    /** @depends testBlockSetFirstCaptures */
-    function testBlockSetFirstOverwrites()
-    {
-        $tpl = "{{#set hello}}world{{/}}{{#set hello}}pants{{/}}{{get hello}}";
-        $expected = "pants";
-        $r = $this->getRenderer();
-        $this->assertEquals($expected, $r->render($tpl, $vars));
-        $this->assertEquals(['hello'=>'pants'], $vars);
-    }
-
     function testBlockSetChained()
     {
         $tpl = "{{# show | upper | set hello }}world{{/}}{{ get hello }}";
@@ -51,10 +42,10 @@ class AcceptanceTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals(['hello'=>'WORLD'], $vars);
     }
 
-    /** @depends testBlockSetFirstCaptures */
-    function testBlockSetFirstInsideEachDoesntHoist()
+    /** @depends testBlockSetChained */
+    function testBlockSetInsideEachDoesntHoist()
     {
-        $tpl = "In: {{#each foo}}{{#set hello}}world{{/}}{{get hello}}{{/}}, Out: {{get hello }}";
+        $tpl = "In: {{#each foo}}{{#show | set hello}}world{{/}}{{get hello}}{{/}}, Out: {{get hello }}";
         $expected = "In: worldworld, Out: yep";
         $initialVars = $vars = [
             'hello'=>'yep', 'foo'=>['a'=>'foo', 'b'=>'bar'],
