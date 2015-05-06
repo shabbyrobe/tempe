@@ -17,10 +17,11 @@ $options = array(
     'filter'=>null,
     'exclude-group'=>null,
     'group'=>null,
+    'verbose'=>false,
 );
 $options = array_merge(
     $options,
-    getopt('', array('help', 'filter:', 'coverage-html:', 'exclude-group:', 'group:'))
+    getopt('', array('help', 'filter:', 'coverage-html:', 'exclude-group:', 'group:', 'verbose'))
 );
 $help = array_key_exists('help', $options);
 if ($help) {
@@ -46,6 +47,7 @@ $args = array(
     'convertWarningsToExceptions'=>true,
     'addUncoveredFilesFromWhitelist'=>true,
     'processUncoveredFilesFromWhitelist'=>true,
+    'verbose'=>true,
 );
 
 $suite = new PHPUnit_Framework_TestSuite();

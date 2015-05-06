@@ -157,10 +157,10 @@ class WebEscaper
      * Returns a quoted, escaped string suitable for building javascript.
      *
      * for e.g.:
-     * var foo = <?= $e->quotedJs("foo") ?>;
+     *     let foo = <?= $e->quotedJs("foo") ?>;
      *
      * will become:
-     * var foo = "foo";
+     *     let foo = "foo";
      */
     public function quotedJs($value)
     {
@@ -182,10 +182,10 @@ class WebEscaper
      * Returns an escaped string suitable for use within a javascript string
      *
      * for e.g.:
-     * var foo = "foo <?= $e->js('bar "bar" bar') ?>";
+     *     let foo = "foo <?= $e->js('bar "bar" bar') ?>";
      *
      * will become:
-     * var foo = "foo bar \"bar\" bar";
+     *     let foo = "foo bar \"bar\" bar";
      */
     public function js($string)
     {

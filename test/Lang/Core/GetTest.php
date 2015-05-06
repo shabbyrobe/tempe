@@ -4,7 +4,7 @@ namespace Tempe\Test\Lang\Core;
 use Tempe\Lang;
 use Tempe\HandlerContext;
 
-class VarTest extends \PHPUnit_Framework_TestCase
+class GetTest extends \PHPUnit_Framework_TestCase
 {
     private function createContext(&$scope, $args=[], $renderer=null)
     {
@@ -21,48 +21,48 @@ class VarTest extends \PHPUnit_Framework_TestCase
         return [$h, $ctx];
     }
 
-    function testHandlerVarInputAsKey()
+    function testHandlerGetInputAsKey()
     {
         $c = new Lang\Part\Core();
         $vars = ['foo'=>'yep'];
         list($h, $context) = $this->createContext($vars);
-        $result = $c->handlers['var']($h, 'foo', $context);
+        $result = $c->handlers['get']($h, 'foo', $context);
         $this->assertEquals('yep', $result);
     }
 
-    function testHandlerVarInputAsScope()
+    function testHandlerGetInputAsScope()
     {
         $c = new Lang\Part\Core();
         $vars = ['foo'=>'bar'];
         list($h, $context) = $this->createContext($vars, 'bar');
-        $result = $c->handlers['var']($h, ['bar'=>'yep'], $context);
+        $result = $c->handlers['get']($h, ['bar'=>'yep'], $context);
         $this->assertEquals('yep', $result);
     }
 
-    function testHandlerVarArrayAccess()
+    function testHandlerGetArrayAccess()
     {
         $c = new Lang\Part\Core();
         $vars = new \ArrayObject(['foo'=>'yep']);
         list($h, $context) = $this->createContext($vars, 'foo');
-        $result = $c->handlers['var']($h, '', $context);
+        $result = $c->handlers['get']($h, '', $context);
         $this->assertEquals('yep', $result);
     }
 
-    function testHandlerVarFailsWithInvalidScope()
+    function testHandlerGetFailsWithInvalidScope()
     {
         $c = new Lang\Part\Core();
         $vars = (object)['foo'=>'yep'];
         list($h, $context) = $this->createContext($vars, 'foo');
         $this->setExpectedException("Tempe\Exception\Render", "Input scope was not an array or ArrayAccess at line 1");
-        $c->handlers['var']($h, '', $context);
+        $c->handlers['get']($h, '', $context);
     }
 
-    function testHandlerVarFromScope()
+    function testHandlerGetFromScope()
     {
         $c = new Lang\Part\Core();
         $vars = ['foo'=>'yep'];
         list($h, $context) = $this->createContext($vars, 'foo');
-        $result = $c->handlers['var']($h, '', $context);
+        $result = $c->handlers['get']($h, '', $context);
         $this->assertEquals('yep', $result);
     }
 
@@ -72,8 +72,8 @@ class VarTest extends \PHPUnit_Framework_TestCase
         $vars = [];
         list($h, $context) = $this->createContext($vars, 'foo');
 
-        $this->setExpectedException('Tempe\Exception\Render', "'var' could not find key 'foo' in context scope");
-        $result = $c->handlers['var']($h, '', $context);
+        $this->setExpectedException('Tempe\Exception\Render', "'get' could not find key 'foo' in context scope");
+        $result = $c->handlers['get']($h, '', $context);
     }
 
     function testValueHandlerOutputMissingInputKeyFails()
@@ -82,7 +82,7 @@ class VarTest extends \PHPUnit_Framework_TestCase
         $vars = [];
         list($h, $context) = $this->createContext($vars, 'foo');
 
-        $this->setExpectedException('Tempe\Exception\Render', "'var' could not find key 'foo' in input scope");
-        $result = $c->handlers['var']($h, [], $context);
+        $this->setExpectedException('Tempe\Exception\Render', "'get' could not find key 'foo' in input scope");
+        $result = $c->handlers['get']($h, [], $context);
     }
 }

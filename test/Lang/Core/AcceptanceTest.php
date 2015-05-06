@@ -5,13 +5,14 @@ use Tempe\Ext;
 
 class AcceptanceTest extends \PHPUnit_Framework_TestCase
 {
-    function testBlockSetFirstCaptures()
+    function testBlockSetFirstNulls()
     {
-        $tpl = "{{#set hello}}world{{/}}{{var hello}}";
-        $expected = "world";
+        $tpl = "{{#set hello}}world{{/}}{{get hello}}";
+        $expected = "";
         $r = $this->getRenderer();
+        $vars = ['hello'=>'WOO'];
         $this->assertEquals($expected, $r->render($tpl, $vars));
-        $this->assertEquals(['hello'=>'world'], $vars);
+        $this->assertEquals(['hello'=>null], $vars);
     }
 
     function testValueSetFailsIfNotLast()
@@ -32,29 +33,19 @@ class AcceptanceTest extends \PHPUnit_Framework_TestCase
         $r->render($tpl, $vars);
     }
 
-    /** @depends testBlockSetFirstCaptures */
-    function testBlockSetFirstOverwrites()
-    {
-        $tpl = "{{#set hello}}world{{/}}{{#set hello}}pants{{/}}{{var hello}}";
-        $expected = "pants";
-        $r = $this->getRenderer();
-        $this->assertEquals($expected, $r->render($tpl, $vars));
-        $this->assertEquals(['hello'=>'pants'], $vars);
-    }
-
     function testBlockSetChained()
     {
-        $tpl = "{{# show | upper | set hello }}world{{/}}{{ var hello }}";
+        $tpl = "{{# show | upper | set hello }}world{{/}}{{ get hello }}";
         $expected = "WORLD";
         $r = $this->getRenderer();
         $this->assertEquals($expected, $r->render($tpl, $vars));
         $this->assertEquals(['hello'=>'WORLD'], $vars);
     }
 
-    /** @depends testBlockSetFirstCaptures */
-    function testBlockSetFirstInsideEachDoesntHoist()
+    /** @depends testBlockSetChained */
+    function testBlockSetInsideEachDoesntHoist()
     {
-        $tpl = "In: {{#each foo}}{{#set hello}}world{{/}}{{var hello}}{{/}}, Out: {{var hello }}";
+        $tpl = "In: {{#each foo}}{{#show | set hello}}world{{/}}{{get hello}}{{/}}, Out: {{get hello }}";
         $expected = "In: worldworld, Out: yep";
         $initialVars = $vars = [
             'hello'=>'yep', 'foo'=>['a'=>'foo', 'b'=>'bar'],
@@ -68,7 +59,7 @@ class AcceptanceTest extends \PHPUnit_Framework_TestCase
 
     function testPushAssocArray()
     {
-        $tpl = "{{#push foo}}{{var bar }}{{/}} {{var bar }}";
+        $tpl = "{{#push foo}}{{get bar }}{{/}} {{get bar }}";
         $expected = "inner outer";
         $initialVars = $vars = [
             'foo'=>['bar'=>'inner'],
@@ -81,7 +72,7 @@ class AcceptanceTest extends \PHPUnit_Framework_TestCase
 
     function testPushNestedHoists()
     {
-        $tpl = "{{# push foo}}{{# push bar }}{{var baz }}{{/}}{{/}} {{ var baz }}";
+        $tpl = "{{# push foo}}{{# push bar }}{{get baz }}{{/}}{{/}} {{ get baz }}";
         $expected = "inner outer";
         $initialVars = $vars = [
             'foo'=>['bar'=>['baz'=>'inner']],
@@ -94,7 +85,7 @@ class AcceptanceTest extends \PHPUnit_Framework_TestCase
 
     function testPushNumericArray()
     {
-        $tpl = "{{#push foo}}{{var 0}} {{var 1}}{{/}}";
+        $tpl = "{{#push foo}}{{get 0}} {{get 1}}{{/}}";
         $expected = "bar baz";
         $initialVars = $vars = [
             'foo'=>['bar', 'baz'],
@@ -114,7 +105,7 @@ class AcceptanceTest extends \PHPUnit_Framework_TestCase
 
     function testValueAs()
     {
-        $tpl = "{{var foo | as html}}";
+        $tpl = "{{get foo | as html}}";
         $vars = ['foo'=>'&&'];
         $r = $this->getRenderer();
         $this->assertEquals("&amp;&amp;", $r->render($tpl, $vars));
@@ -122,7 +113,7 @@ class AcceptanceTest extends \PHPUnit_Framework_TestCase
 
     function testValueMultiAs()
     {
-        $tpl = "{{var foo | as html | as urlquery}}";
+        $tpl = "{{get foo | as html | as urlquery}}";
         $vars = ['foo'=>'&amp;'];
         $r = $this->getRenderer();
         $this->assertEquals("%26amp%3Bamp%3B", $r->render($tpl, $vars));
@@ -139,7 +130,7 @@ class AcceptanceTest extends \PHPUnit_Framework_TestCase
 
     function testBlockAs()
     {
-        $tpl = "{{#show | as html}}{{var foo}}{{/}}";
+        $tpl = "{{#show | as html}}{{get foo}}{{/}}";
         $vars = ['foo'=>'&&'];
         $r = $this->getRenderer();
         $this->assertEquals("&amp;&amp;", $r->render($tpl, $vars));

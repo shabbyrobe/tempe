@@ -148,11 +148,11 @@ It allows you to include the tag opener (``{{``) in your output like so::
 It is not necessary to escape a single curly brace except to disambiguate it from a tag
 opening. The following does not require the escape sequence::
 
-    {"json": {"yep": {{ var value | as js }} }}
+    {"json": {"yep": {{ get value | as js }} }}
 
 But this example does::
 
-    {"json": {;{{ var key | as js }}: "yep" }}
+    {"json": {;{{ get key | as js }}: "yep" }}
 
 
 Language
@@ -168,12 +168,12 @@ the Tempe source directory, you will get a shell with Tempe set up and ready to 
     ~/php/tempe$ boris
     Tempe Shell
 
-    [1] boris> dumptpl("{{ var foo }}");
+    [1] boris> dumptpl("{{ get foo }}");
     0  1 P_ROOT     |  
-    1  1   P_VALUE  |  var (foo)
+    1  1   P_VALUE  |  get (foo)
      → NULL
 
-    [2] boris> render("{{ var foo }}", ['foo'=>'bar']);
+    [2] boris> render("{{ get foo }}", ['foo'=>'bar']);
     Render:
     ---
     bar
@@ -188,15 +188,15 @@ Handlers
 
 Get the variable ``foo`` and write to the output::
 
-    {{ var foo }}
+    {{ get foo }}
 
 Get the variable ``foo``, escape as HTML then write to the output::
 
-    {{ var foo | as html }}
+    {{ get foo | as html }}
 
 Nested escape contexts can be handled in a single call to ``as``::
 
-    <a href="url.php?arg={{ var foo | as html urlquery }}">foo</a>
+    <a href="url.php?arg={{ get foo | as html urlquery }}">foo</a>
 
 .. warning::
 
@@ -212,47 +212,47 @@ Nested escape contexts can be handled in a single call to ``as``::
 Nested variable lookup::
     
     Given the hash {"foo": {"bar": "yep"}}
-    This should print "yep": {{ var foo | var bar }}
+    This should print "yep": {{ get foo | get bar }}
 
 Set a variable to the contents of a block::
 
     Should print nothing: {{# set foo }}Hello World{{/}}
-    Should print "Hello World": {{ var foo }}
+    Should print "Hello World": {{ get foo }}
 
 Set a variable from a different variable, overwriting if it already exists::
 
     {{# set foo }}hello{{/}}
     {{# set bar }}world{{/}}
-    {{ var foo | set bar }}
-    Should print hello: {{ var bar }}
+    {{ get foo | set bar }}
+    Should print hello: {{ get bar }}
 
 Display a block if variable ``foo`` is truthy::
 
-    {{# var foo | show }}Truthy!{{/}}
+    {{# get foo | show }}Truthy!{{/}}
 
 Display a block if variable ``foo`` is equal to the **value** ``hello``::
 
-    {{# var foo | eqval hello | show }}Hello!{{/}}
+    {{# get foo | eq hello | show }}Hello!{{/}}
 
 Display a block if variable ``foo`` is **not** equal to the **value** ``hello``::
 
-    {{# var foo | eqval hello | not | show }}Goodbye!{{/}}
+    {{# get foo | eq hello | not | show }}Goodbye!{{/}}
 
-``eqval`` is limited to loose comparisons with **identifiers**. Comparisons can be done
+``eq`` is limited to loose comparisons with **identifiers**. Comparisons can be done
 between variables using ``eqvar``::
 
     Given the hash {"foo": "yep", "bar": "yep"}
     This block should render: 
-    {{# var foo | eqvar bar | show }}foo is equal to bar!{{/}}
+    {{# get foo | eqvar bar | show }}foo is equal to bar!{{/}}
 
 Complex expressions can be tested using a combination of ``set`` and ``eqvar``. This
 allows the use of concatenation in comparisons::
 
     {{# set foo }}hel{{/}}
     {{# set bar }}lo{{/}}
-    {{# set expr}}{{ var foo }}{{ var bar }}{{/}}
+    {{# set expr}}{{ get foo }}{{ get bar }}{{/}}
     {{# set test }}hello{{/}}
-    {{# var expr | eqvar test | show }}This should show!{{/}}
+    {{# get expr | eqvar test | show }}This should show!{{/}}
 
 Block iteration::
 
@@ -261,14 +261,14 @@ Block iteration::
 
     This template:
     {{# each foo }}
-        Key:            {{ var _key_ }}
-        Value:          {{ var _value_ | var a }}
-        0-based index:  {{ var _idx_ }}
-        1-based number: {{ var _num_ }}
-        Is it first?:   {{#var _first_|show}}Yep!{{/}}{{#var _first_|not|show}}Nup!{{/}}
+        Key:            {{ get _key_ }}
+        Value:          {{ get _value_ | get a }}
+        0-based index:  {{ get _idx_ }}
+        1-based number: {{ get _num_ }}
+        Is it first?:   {{#get _first_|show}}Yep!{{/}}{{#get _first_|not|show}}Nup!{{/}}
 
         `foo` is merged with the current scope:
-            {{ var a }}, {{ var b }}
+            {{ get a }}, {{ get b }}
     {{/}}
 
     Will output:
@@ -294,7 +294,7 @@ Block iteration::
 Push an array onto the current scope for a block::
 
     Given the hash:   {"foo": {"bar": "hello"}}
-    The template:     {{# push foo }}{{ var bar }}{{/}}
+    The template:     {{# push foo }}{{ get bar }}{{/}}
     Should output:    hello
 
 Build a nested array using ``push``::
@@ -304,7 +304,7 @@ Build a nested array using ``push``::
     {{# set baz }}hello{{/}}
     {{/ b }}
     {{/ a }}
-    Should print 'hello': {{ var foo | var bar | var baz }}
+    Should print 'hello': {{ get foo | get bar | get baz }}
 
 Handlers are chainable. This contrived example makes an entire block upper case, then html
 escapes it, then sets it to another variable::
@@ -312,8 +312,151 @@ escapes it, then sets it to another variable::
     {{# show | upper | as html | set foo }}
     foo & bar
     {{/}}
-    Should show "FOO &amp; BAR": {{ var foo }}
+    Should show "FOO &amp; BAR": {{ get foo }}
  
+
+Handler Reference
+~~~~~~~~~~~~~~~~~
+
+.. note:: The following conventions are used when defining handler syntax:
+   - Anything enclosed in square brackets ``[...]`` is optional.
+
+   - If the handler name is preceded by an argument and a pipe, the handler
+     operates on the pipeline's input. e.g. ``<key> | eat`` would mean that the ``eat``
+     handler takes a ``<key>`` from the input.
+
+
+Tempe provides the following handlers as part of its core language:
+
+``get``
+    Get the value of a key in the current scope.
+
+    Syntax: ``[ <key> | ] get [ <key> ]``
+
+    Output: mixed
+
+    Valid contexts: value, block
+
+    A key is required. The key can be passed as an argument or it can be passed via input. 
+    A key passed via argument takes precedence.
+
+    Lookups can be nested. The following outputs ``hello``::
+
+        render("{{ get foo | get bar }}", ['foo'=>['bar'=>'hello']]);
+
+
+``set``
+    Set the value of a key in the current scope to the input.
+
+    Syntax: ``[ <input> | ] set <key>``
+
+    Output: null
+
+    Valid contexts: value, block
+
+    A ``<key>`` is required.
+    
+    Input always comes from a pipe. If the ``set`` handler is first in a chain, the input
+    will be an empty string.
+    
+
+``eq``
+    Compare the input to an identifier and output true or false.
+
+    Syntax: ``<input> | eq <compare>``
+
+    Output: boolean
+
+    Valid contexts: value, block
+
+    This only allows simple equality comparisons - anything that is allowable as an
+    identifier can be used for ``<compare>``. For more sophisticated equality comparisons,
+    use ``eqvar``.
+
+    This handler is really only useful for influencing other handlers, like ``show``::
+
+        {{# get foo | eq hello | show }} Will show if 'foo'=='hello'! {{/}}
+
+
+``eqvar``
+    Compare the input with the value of a key in the current scope and output true or false.
+
+    Syntax: ``<input> | eqvar <key>``
+
+    Output: boolean
+
+    Valid contexts: value, block
+
+    This allows more complex equality comparisons by fetching the value of ``<key>`` from
+    the current scope.
+    
+    If the comparison value does not exist in the scope, create it::
+
+        {{# set test }}HELLO!.{{/}}
+        {{# get foo | eqvar test | show }}
+            Will show if 'foo' == 'HELLO!'
+        {{/}}
+
+
+``not``
+    Negate the truthiness of the input.
+
+    Syntax: ``<input> | not``
+
+    Output: boolean
+
+    Valid contexts: value, block
+
+    Example::
+        
+        {{# get foo | not | show }}
+            If foo is not truthy, this will show
+        {{/}}
+
+
+``each``
+    Render a block for each item in the input or scope key.
+
+    Syntax:
+    - ``<input> | each``
+    - ``each <key>``
+
+    Output: string (rendered template)
+
+    Valid contexts: block
+
+    The following variables are made available on each iteration:
+    - ``_key_``: Current key
+    - ``_value_``: Current value
+    - ``_idx_``: 0-based index
+    - ``_num_``: 1-based number
+    - ``_first_``: Boolean indicating first item
+
+``as``
+    Escape input using supplied context
+
+    Syntax: ``<input> | as <context>``
+
+    Valid contexts: block
+    
+
+``show``
+    Render a block
+
+    Syntax:
+    - ``<input> | show``
+    - ``show``
+
+
+``push``
+    Push the value of a key onto the current scope for a block and render the block.
+
+    Syntax: ``push <key>``
+
+    Output: string (rendered contents)
+
+    Valid contexts: block
+
 
 String filters
 ~~~~~~~~~~~~~~
@@ -490,11 +633,11 @@ ArrayAccess as your scope if you are planning on making modifications in your bl
             $scope['foo'] = 'inside';
             return $ctx->renderer->renderTree($ctx->node, $scope);
         },
-        'var'=>function($h, $in, $ctx) { return $ctx->scope[$h->args[0]]; },
+        'get'=>function($h, $in, $ctx) { return $ctx->scope[$h->args[0]]; },
     ];
     $renderer = new \Tempe\Renderer(new \Tempe\Lang\Basic($handlers));
 
-    $tpl = "{{# block }}{{ var foo }}{{/}} {{ var foo }}";
+    $tpl = "{{# block }}{{ get foo }}{{/}} {{ get foo }}";
 
     $scope = ['foo'=>'outside'];
     assert("inside outside" == $renderer->render($tpl, $scope));

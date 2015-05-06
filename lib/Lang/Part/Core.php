@@ -11,9 +11,9 @@ class Core
     function __construct($options=[])
     {
         $this->rules = [
-            'var'   => ['argMin'=>0, 'argMax'=>1],
-            'eqval' => ['argc'=>1],
-            'eqvar' => ['argc'=>1],
+            'get'   => ['argMin'=>0, 'argMax'=>1],
+            'eq'    => ['first'=>false, 'argc'=>1],
+            'eqvar' => ['first'=>false, 'argc'=>1],
             'not'   => ['argc'=>0],
             'each'  => ['argMin'=>0, 'argMax'=>1, 'allowValue'=>false],
             'as'    => ['argMin'=>1, 'first'=>false],
@@ -51,8 +51,8 @@ class Core
             }
         }
 
-        if (isset($this->rules['var'])) {
-            $this->handlers['var'] = function($handler, $in, $context) {
+        if (isset($this->rules['get'])) {
+            $this->handlers['get'] = function($handler, $in, $context) {
                 $scopeInput = false;
                 $key = isset($handler->args[0]) ? $handler->args[0] : null;
                 if ($key && $in !== '' && $in !== null) {
@@ -70,7 +70,7 @@ class Core
                     throw new Exception\Render("Input scope was not an array or ArrayAccess", $context->node->line);
                 }
                 if (!array_key_exists($key, $scope)) {
-                    throw new Exception\Render("'var' could not find key '$key' in ".($scopeInput ? 'input' : 'context')." scope", $context->node->line);
+                    throw new Exception\Render("'get' could not find key '$key' in ".($scopeInput ? 'input' : 'context')." scope", $context->node->line);
                 }
                 return $scope[$key];
             };
@@ -94,11 +94,20 @@ class Core
             };
         }
 
-        if (isset($this->rules['eqval'])) {
-            $this->handlers['eqval'] = function($handler, $in, $context) {
-                $yep = $in == $handler->args[0];
-                if ($yep) {
-                    return true;
+        if (isset($this->rules['eq'])) {
+            $this->handlers['eq'] = function($handler, $in, $context) {
+                if ($in == $handler->args[0]) {
+                    return $in;
+                } else {
+                    $context->break = true;
+                }
+            };
+        }
+
+        if (isset($this->rules['neq'])) {
+            $this->handlers['neq'] = function($handler, $in, $context) {
+                if ($in != $handler->args[0]) {
+                    return $in;
                 } else {
                     $context->break = true;
                 }
@@ -114,11 +123,7 @@ class Core
         if (isset($this->rules['set'])) {
             $this->handlers['set'] = function($handler, $in, $context) {
                 $key = $handler->args[0];
-                if ($context->chainPos == 0 && $context->node->type == \Tempe\Renderer::P_BLOCK) {
-                    $context->scope[$key] = $context->renderer->renderTree($context->node, $context->scope);
-                } else {
-                    $context->scope[$key] = $in;
-                }
+                $context->scope[$key] = $in;
             };
         }
 
