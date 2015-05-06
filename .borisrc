@@ -15,7 +15,7 @@ echo '
         Dump the tree of a parsed template. Pass your own $lang as the
         second argument, or "false" to use no $lang.
 
-    render($tpl, $vars=[], &$into=null)
+    render($tpl, $vars=[], &$into=null, $lang=null)
         Print a rendered template. Does not show stack traces, just 
         error messages
 ';
