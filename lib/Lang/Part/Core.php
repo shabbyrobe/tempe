@@ -11,7 +11,7 @@ class Core
     function __construct($options=[])
     {
         $this->rules = [
-            'var'   => ['argMin'=>0, 'argMax'=>1],
+            'get'   => ['argMin'=>0, 'argMax'=>1],
             'eqval' => ['argc'=>1],
             'eqvar' => ['argc'=>1],
             'not'   => ['argc'=>0],
@@ -51,8 +51,8 @@ class Core
             }
         }
 
-        if (isset($this->rules['var'])) {
-            $this->handlers['var'] = function($handler, $in, $context) {
+        if (isset($this->rules['get'])) {
+            $this->handlers['get'] = function($handler, $in, $context) {
                 $scopeInput = false;
                 $key = isset($handler->args[0]) ? $handler->args[0] : null;
                 if ($key && $in !== '' && $in !== null) {
@@ -70,7 +70,7 @@ class Core
                     throw new Exception\Render("Input scope was not an array or ArrayAccess", $context->node->line);
                 }
                 if (!array_key_exists($key, $scope)) {
-                    throw new Exception\Render("'var' could not find key '$key' in ".($scopeInput ? 'input' : 'context')." scope", $context->node->line);
+                    throw new Exception\Render("'get' could not find key '$key' in ".($scopeInput ? 'input' : 'context')." scope", $context->node->line);
                 }
                 return $scope[$key];
             };

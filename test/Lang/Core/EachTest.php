@@ -14,7 +14,7 @@ class EachTest extends \PHPUnit_Framework_TestCase
 
     function testEachAssocArray()
     {
-        $tpl = "{{#each foo}}{{ var a1 }} {{var a2}}\n{{/}}";
+        $tpl = "{{#each foo}}{{ get a1 }} {{get a2}}\n{{/}}";
         $expected = "foo bar\nbaz qux\n";
         $initialVars = $vars = [
             'foo'=>[
@@ -31,7 +31,7 @@ class EachTest extends \PHPUnit_Framework_TestCase
 
     function testEachIterable()
     {
-        $tpl = "{{#each foo}}{{ var a1 }} {{var a2}}\n{{/}}";
+        $tpl = "{{#each foo}}{{ get a1 }} {{get a2}}\n{{/}}";
         $expected = "foo bar\nbaz qux\n";
         $initialVars = $vars = [
             'foo'=>new \ArrayObject([
@@ -48,7 +48,7 @@ class EachTest extends \PHPUnit_Framework_TestCase
 
     function testEachNullInputNoKey()
     {
-        $tpl = "{{#var foo | each}}a{{/}}";
+        $tpl = "{{#get foo | each}}a{{/}}";
         $vars = ['foo'=>null];
         $this->assertEquals("", $this->getRenderer()->render($tpl, $vars));
     }
@@ -62,7 +62,7 @@ class EachTest extends \PHPUnit_Framework_TestCase
 
     function testEachInput()
     {
-        $tpl = "{{#var foo|each}}{{var a1}} {{var a2}}\n{{/}}";
+        $tpl = "{{#get foo|each}}{{get a1}} {{get a2}}\n{{/}}";
         $expected = "foo bar\nbaz qux\n";
         $initialVars = $vars = [
             'foo'=>[
@@ -92,7 +92,7 @@ class EachTest extends \PHPUnit_Framework_TestCase
      */
     function testEachNotIterable($input)
     {
-        $tpl = "{{#each foo}}{{var _value_}} {{/}}";
+        $tpl = "{{#each foo}}{{get _value_}} {{/}}";
         $vars = ['foo'=>$input];
         $r = $this->getRenderer();
         $this->setExpectedException("Tempe\Exception\Render", "'each' was not traversable at line 1");
@@ -101,7 +101,7 @@ class EachTest extends \PHPUnit_Framework_TestCase
 
     function testEachNumericArray()
     {
-        $tpl = "{{#each foo}}{{var 0}} {{var 1}}\n{{/}}";
+        $tpl = "{{#each foo}}{{get 0}} {{get 1}}\n{{/}}";
         $expected = "foo bar\nbaz qux\n";
         $initialVars = $vars = [
             'foo'=>[
@@ -118,7 +118,7 @@ class EachTest extends \PHPUnit_Framework_TestCase
 
     function testEachMetaVars()
     {
-        $tpl = "{{#each foo}}{{var _idx_}}|{{var _num_ }}) {{var _key_}} => {{var _value_}}\n{{/}}";
+        $tpl = "{{#each foo}}{{get _idx_}}|{{get _num_ }}) {{get _key_}} => {{get _value_}}\n{{/}}";
         $expected = "0|1) a => foo\n1|2) b => bar\n2|3) c => baz\n";
         $initialVars = $vars = [
             'foo'=>[

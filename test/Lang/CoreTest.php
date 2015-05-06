@@ -23,8 +23,8 @@ class CoreTest extends \PHPUnit_Framework_TestCase
     {
         $c = new Lang\Part\Core(['blacklist'=>['each', 'show']]);
 
-        $this->assertTrue(isset($c->handlers['var']));
-        $this->assertTrue(isset($c->rules['var']));
+        $this->assertTrue(isset($c->handlers['get']));
+        $this->assertTrue(isset($c->rules['get']));
 
         $this->assertFalse(isset($c->handlers['each']));
         $this->assertFalse(isset($c->rules['each']));
@@ -36,8 +36,8 @@ class CoreTest extends \PHPUnit_Framework_TestCase
     {
         $c = new Lang\Part\Core(['whitelist'=>['each', 'show']]);
 
-        $this->assertFalse(isset($c->handlers['var']));
-        $this->assertFalse(isset($c->rules['var']));
+        $this->assertFalse(isset($c->handlers['get']));
+        $this->assertFalse(isset($c->rules['get']));
 
         $this->assertTrue(isset($c->handlers['each']));
         $this->assertTrue(isset($c->rules['each']));
@@ -48,7 +48,7 @@ class CoreTest extends \PHPUnit_Framework_TestCase
     function testWhiteListAndBlackListFails()
     {
         $this->setExpectedException("InvalidArgumentException", "Only specify whitelist or blacklist, not both");
-        $c = new Lang\Part\Core(['whitelist'=>['each'], 'blacklist'=>['var']]);
+        $c = new Lang\Part\Core(['whitelist'=>['each'], 'blacklist'=>['get']]);
     }
 
     function testWhitelistUnknownHandlerFails()

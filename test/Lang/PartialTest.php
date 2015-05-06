@@ -12,7 +12,7 @@ class PartialTest extends \PHPUnit_Framework_TestCase
         $partial = new \Tempe\Lang\Part\Partial(['paths'=>['parts'=>"vfs://test"]]);
         $core = new \Tempe\Lang\Part\Core;
         $lang = (new \Tempe\Lang\Basic())->addPart($partial);
-        $lang->handlers['var'] = $core->handlers['var'];
+        $lang->handlers['get'] = $core->handlers['get'];
         $this->renderer = new \Tempe\Renderer($lang);
 
         $count = 0;
@@ -84,9 +84,9 @@ class PartialTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals("-0-", $out);
     }
 
-    function testTplVar()
+    function testTplGet()
     {
-        $tpl = "-{{ var file | tpl }}-";
+        $tpl = "-{{ get file | tpl }}-";
         file_put_contents("vfs://test/test.tpl", "{{ test }}");
         $vars = ['file'=>'parts/test.tpl'];
         $out = $this->renderer->render($tpl, $vars);
@@ -111,7 +111,7 @@ class PartialTest extends \PHPUnit_Framework_TestCase
 
     function testInclVar()
     {
-        $tpl = "-{{ var file | incl }}-";
+        $tpl = "-{{ get file | incl }}-";
         file_put_contents("vfs://test/test.txt", "{{ test }}");
         $vars = ['file'=>'parts/test.txt'];
         $out = $this->renderer->render($tpl, $vars);
