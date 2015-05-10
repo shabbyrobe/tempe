@@ -109,8 +109,12 @@ class Helper
             return 'P_BLOCK';
         case Renderer::P_VALUE:
             return 'P_VALUE';
-        case Renderer::P_ESC:
-            return 'P_ESC';
+        case Renderer::P_ESC_BOPEN:
+            return 'P_ESC_BOPEN';
+        case Renderer::P_ESC_BCLOSE:
+            return 'P_ESC_BCLOSE';
+        case Renderer::P_ESC_VAL:
+            return 'P_ESC_VAL';
         default:
             return 'UNKNOWN';
         }

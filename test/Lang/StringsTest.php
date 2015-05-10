@@ -14,7 +14,7 @@ class StringsTest extends \PHPUnit_Framework_TestCase
 
         $renderer = new \Tempe\Renderer($lang);
         $vars = ['in'=>$in];
-        $out = $renderer->render("{{ in | $function }}", $vars);
+        $out = $renderer->render("{= in | $function }", $vars);
         $this->assertEquals($expected, $out);
     }
 

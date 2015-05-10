@@ -7,7 +7,7 @@ class AcceptanceTest extends \PHPUnit_Framework_TestCase
 {
     function testBlockSetFirstNulls()
     {
-        $tpl = "{{#set hello}}world{{/}}{{get hello}}";
+        $tpl = "{#set hello}world{/}{=get hello}";
         $expected = "";
         $r = $this->getRenderer();
         $vars = ['hello'=>'WOO'];
@@ -17,7 +17,7 @@ class AcceptanceTest extends \PHPUnit_Framework_TestCase
 
     function testValueSetFailsIfNotLast()
     {
-        $tpl = "{{set hello | upper}}";
+        $tpl = "{=set hello | upper}";
         $expected = "WORLD";
         $r = $this->getRenderer();
         $this->setExpectedException('Tempe\Exception\Check', "Handlers must not follow 'set' in a chain");
@@ -26,7 +26,7 @@ class AcceptanceTest extends \PHPUnit_Framework_TestCase
 
     function testBlockSetFailsIfNotLast()
     {
-        $tpl = "{{#set hello | upper}}world{{/}}";
+        $tpl = "{#set hello | upper}world{/}";
         $expected = "WORLD";
         $r = $this->getRenderer();
         $this->setExpectedException('Tempe\Exception\Check', "Handlers must not follow 'set' in a chain");
@@ -35,7 +35,7 @@ class AcceptanceTest extends \PHPUnit_Framework_TestCase
 
     function testBlockSetChained()
     {
-        $tpl = "{{# show | upper | set hello }}world{{/}}{{ get hello }}";
+        $tpl = "{# show | upper | set hello }world{/}{= get hello }";
         $expected = "WORLD";
         $r = $this->getRenderer();
         $this->assertEquals($expected, $r->render($tpl, $vars));
@@ -45,7 +45,7 @@ class AcceptanceTest extends \PHPUnit_Framework_TestCase
     /** @depends testBlockSetChained */
     function testBlockSetInsideEachDoesntHoist()
     {
-        $tpl = "In: {{#each foo}}{{#show | set hello}}world{{/}}{{get hello}}{{/}}, Out: {{get hello }}";
+        $tpl = "In: {#each foo}{#show | set hello}world{/}{=get hello}{/}, Out: {=get hello }";
         $expected = "In: worldworld, Out: yep";
         $initialVars = $vars = [
             'hello'=>'yep', 'foo'=>['a'=>'foo', 'b'=>'bar'],
@@ -59,7 +59,7 @@ class AcceptanceTest extends \PHPUnit_Framework_TestCase
 
     function testPushAssocArray()
     {
-        $tpl = "{{#push foo}}{{get bar }}{{/}} {{get bar }}";
+        $tpl = "{#push foo}{=get bar }{/} {=get bar }";
         $expected = "inner outer";
         $initialVars = $vars = [
             'foo'=>['bar'=>'inner'],
@@ -72,7 +72,7 @@ class AcceptanceTest extends \PHPUnit_Framework_TestCase
 
     function testPushNestedHoists()
     {
-        $tpl = "{{# push foo}}{{# push bar }}{{get baz }}{{/}}{{/}} {{ get baz }}";
+        $tpl = "{# push foo}{# push bar }{=get baz }{/}{/} {= get baz }";
         $expected = "inner outer";
         $initialVars = $vars = [
             'foo'=>['bar'=>['baz'=>'inner']],
@@ -85,7 +85,7 @@ class AcceptanceTest extends \PHPUnit_Framework_TestCase
 
     function testPushNumericArray()
     {
-        $tpl = "{{#push foo}}{{get 0}} {{get 1}}{{/}}";
+        $tpl = "{#push foo}{=get 0} {=get 1}{/}";
         $expected = "bar baz";
         $initialVars = $vars = [
             'foo'=>['bar', 'baz'],
@@ -97,7 +97,7 @@ class AcceptanceTest extends \PHPUnit_Framework_TestCase
 
     function testPushUnsetAllowed()
     {
-        $tpl = "{{#push foo}}yep{{/}}";
+        $tpl = "{#push foo}yep{/}";
         $r = $this->getRenderer();
         $vars = [];
         $this->assertEquals("yep", $r->render($tpl, $vars));
@@ -105,7 +105,7 @@ class AcceptanceTest extends \PHPUnit_Framework_TestCase
 
     function testValueAs()
     {
-        $tpl = "{{get foo | as html}}";
+        $tpl = "{=get foo | as html}";
         $vars = ['foo'=>'&&'];
         $r = $this->getRenderer();
         $this->assertEquals("&amp;&amp;", $r->render($tpl, $vars));
@@ -113,7 +113,7 @@ class AcceptanceTest extends \PHPUnit_Framework_TestCase
 
     function testValueMultiAs()
     {
-        $tpl = "{{get foo | as html | as urlquery}}";
+        $tpl = "{=get foo | as html | as urlquery}";
         $vars = ['foo'=>'&amp;'];
         $r = $this->getRenderer();
         $this->assertEquals("%26amp%3Bamp%3B", $r->render($tpl, $vars));
@@ -121,7 +121,7 @@ class AcceptanceTest extends \PHPUnit_Framework_TestCase
 
     function testAsCannotBeFirst()
     {
-        $tpl = "{{as html}}";
+        $tpl = "{=as html}";
         $vars = [];
         $r = $this->getRenderer();
         $this->setExpectedException('Tempe\Exception\Check', "Handler 'as' must not be first at line 1");
@@ -130,7 +130,7 @@ class AcceptanceTest extends \PHPUnit_Framework_TestCase
 
     function testBlockAs()
     {
-        $tpl = "{{#show | as html}}{{get foo}}{{/}}";
+        $tpl = "{#show | as html}{=get foo}{/}";
         $vars = ['foo'=>'&&'];
         $r = $this->getRenderer();
         $this->assertEquals("&amp;&amp;", $r->render($tpl, $vars));

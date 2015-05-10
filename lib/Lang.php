@@ -29,8 +29,8 @@ interface Lang
 
     /**
      * Will be called if the handler is empty, i.e.:
-     *     {{ }}
-     *     {{#}}{{/}}
+     *     {= }
+     *     {# }{/}
      */
     function handleEmpty(\Tempe\HandlerContext $context);
 }

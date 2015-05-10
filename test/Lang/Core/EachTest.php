@@ -5,7 +5,7 @@ class EachTest extends \PHPUnit_Framework_TestCase
 {
     function testEachUnsetNotAllowed()
     {
-        $tpl = "{{# each foo }}yep{{/}}";
+        $tpl = "{# each foo }yep{/}";
         $r = $this->getRenderer();
         $vars = [];
         $this->setExpectedException("Tempe\Exception\Render", "'each' could not find key 'foo' in scope at line 1");
@@ -14,7 +14,7 @@ class EachTest extends \PHPUnit_Framework_TestCase
 
     function testEachAssocArray()
     {
-        $tpl = "{{#each foo}}{{ get a1 }} {{get a2}}\n{{/}}";
+        $tpl = "{#each foo}{= get a1 } {=get a2}\n{/}";
         $expected = "foo bar\nbaz qux\n";
         $initialVars = $vars = [
             'foo'=>[
@@ -31,7 +31,7 @@ class EachTest extends \PHPUnit_Framework_TestCase
 
     function testEachIterable()
     {
-        $tpl = "{{#each foo}}{{ get a1 }} {{get a2}}\n{{/}}";
+        $tpl = "{#each foo}{= get a1 } {=get a2}\n{/}";
         $expected = "foo bar\nbaz qux\n";
         $initialVars = $vars = [
             'foo'=>new \ArrayObject([
@@ -48,21 +48,21 @@ class EachTest extends \PHPUnit_Framework_TestCase
 
     function testEachNullInputNoKey()
     {
-        $tpl = "{{#get foo | each}}a{{/}}";
+        $tpl = "{#get foo | each}a{/}";
         $vars = ['foo'=>null];
         $this->assertEquals("", $this->getRenderer()->render($tpl, $vars));
     }
 
     function testEachNullKey()
     {
-        $tpl = "{{#each foo}}a{{/}}";
+        $tpl = "{#each foo}a{/}";
         $vars = ['foo'=>null];
         $this->assertEquals("", $this->getRenderer()->render($tpl, $vars));
     }
 
     function testEachInput()
     {
-        $tpl = "{{#get foo|each}}{{get a1}} {{get a2}}\n{{/}}";
+        $tpl = "{#get foo|each}{=get a1} {=get a2}\n{/}";
         $expected = "foo bar\nbaz qux\n";
         $initialVars = $vars = [
             'foo'=>[
@@ -92,7 +92,7 @@ class EachTest extends \PHPUnit_Framework_TestCase
      */
     function testEachNotIterable($input)
     {
-        $tpl = "{{#each foo}}{{get _value_}} {{/}}";
+        $tpl = "{#each foo}{=get _value_} {/}";
         $vars = ['foo'=>$input];
         $r = $this->getRenderer();
         $this->setExpectedException("Tempe\Exception\Render", "'each' was not traversable at line 1");
@@ -101,7 +101,7 @@ class EachTest extends \PHPUnit_Framework_TestCase
 
     function testEachNumericArray()
     {
-        $tpl = "{{#each foo}}{{get 0}} {{get 1}}\n{{/}}";
+        $tpl = "{#each foo}{=get 0} {=get 1}\n{/}";
         $expected = "foo bar\nbaz qux\n";
         $initialVars = $vars = [
             'foo'=>[
@@ -118,7 +118,7 @@ class EachTest extends \PHPUnit_Framework_TestCase
 
     function testEachMetaVars()
     {
-        $tpl = "{{#each foo}}{{get _idx_}}|{{get _num_ }}) {{get _key_}} => {{get _value_}}\n{{/}}";
+        $tpl = "{#each foo}{=get _idx_}|{=get _num_ }) {=get _key_} => {=get _value_}\n{/}";
         $expected = "0|1) a => foo\n1|2) b => bar\n2|3) c => baz\n";
         $initialVars = $vars = [
             'foo'=>[

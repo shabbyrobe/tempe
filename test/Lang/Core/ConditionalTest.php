@@ -14,7 +14,7 @@ class ConditionalTest extends \PHPUnit_Framework_TestCase
     function testIfTrueShow($truthy)
     {
         $vars = ['foo'=>$truthy];
-        $out = $this->renderer->render('{{# get foo | show }}shown{{/}}', $vars);
+        $out = $this->renderer->render('{# get foo | show }shown{/}', $vars);
         $this->assertEquals('shown', $out);
     }
 
@@ -24,7 +24,7 @@ class ConditionalTest extends \PHPUnit_Framework_TestCase
     function testIfFalseHide($falsey)
     {
         $vars = ['foo'=>$falsey];
-        $out = $this->renderer->render('{{# get foo | show }}shown{{/}}', $vars);
+        $out = $this->renderer->render('{# get foo | show }shown{/}', $vars);
         $this->assertEquals('', $out);
     }
 
@@ -34,7 +34,7 @@ class ConditionalTest extends \PHPUnit_Framework_TestCase
     function testNotFalseShow($falsey)
     {
         $vars = ['foo'=>$falsey];
-        $out = $this->renderer->render('{{# get foo | not | show }}shown{{/}}', $vars);
+        $out = $this->renderer->render('{# get foo | not | show }shown{/}', $vars);
         $this->assertEquals('shown', $out);
     }
 
@@ -44,7 +44,7 @@ class ConditionalTest extends \PHPUnit_Framework_TestCase
     function testNotTrueHide($truthy)
     {
         $vars = ['foo'=>$truthy];
-        $out = $this->renderer->render('{{# get foo | not | show }}shown{{/}}', $vars);
+        $out = $this->renderer->render('{# get foo | not | show }shown{/}', $vars);
         $this->assertEquals('', $out);
     }
 
@@ -54,7 +54,7 @@ class ConditionalTest extends \PHPUnit_Framework_TestCase
     function testEqVarShow($l, $r, $yep=true)
     {
         $vars = ['foo'=>$l, 'bar'=>$r];
-        $out = $this->renderer->render('{{# get foo | eqvar bar | show }}shown{{/}}', $vars);
+        $out = $this->renderer->render('{# get foo | eqvar bar | show }shown{/}', $vars);
         $this->assertEquals($yep ? 'shown' : '', $out);
     }
 
@@ -77,7 +77,7 @@ class ConditionalTest extends \PHPUnit_Framework_TestCase
     function testEqShow($l, $r, $yep=true)
     {
         $vars = ['foo'=>$l];
-        $out = $this->renderer->render("{{# get foo | eq $r | show }}shown{{/}}", $vars);
+        $out = $this->renderer->render("{# get foo | eq $r | show }shown{/}", $vars);
         $this->assertEquals($yep ? 'shown' : '', $out);
     }
 
@@ -95,7 +95,7 @@ class ConditionalTest extends \PHPUnit_Framework_TestCase
     {
         $vars = ['foo'=>'a'];
         $this->renderer->lang->handlers['quack'] = function () { return 'quack'; };
-        $out = $this->renderer->render("{{# get foo | eq b | quack }}{{/}}", $vars);
+        $out = $this->renderer->render("{# get foo | eq b | quack }{/}", $vars);
         $this->assertEquals('', $out);
     }
 
@@ -103,7 +103,7 @@ class ConditionalTest extends \PHPUnit_Framework_TestCase
     {
         $vars = ['foo'=>'a', 'bar'=>'b'];
         $this->renderer->lang->handlers['quack'] = function () { return 'quack'; };
-        $out = $this->renderer->render("{{# get foo | eqvar bar | quack }}{{/}}", $vars);
+        $out = $this->renderer->render("{# get foo | eqvar bar | quack }{/}", $vars);
         $this->assertEquals('', $out);
     }
 
@@ -111,7 +111,7 @@ class ConditionalTest extends \PHPUnit_Framework_TestCase
     {
         $vars = ['foo'=>'a'];
         $this->setExpectedException('Tempe\Exception\Render', "'eqvar' could not find key 'bar' in scope at line 1");
-        $this->renderer->render("{{# get foo | eqvar bar | show }}{{/}}", $vars);
+        $this->renderer->render("{# get foo | eqvar bar | show }{/}", $vars);
     }
 
     function dataTruthy()

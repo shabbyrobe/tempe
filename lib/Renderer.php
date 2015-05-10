@@ -7,7 +7,9 @@ class Renderer
     const P_STRING = 2;
     const P_BLOCK = 3;
     const P_VALUE = 4;
-    const P_ESC = 5;
+    const P_ESC_VAL = 5;
+    const P_ESC_BCLOSE = 6;
+    const P_ESC_BOPEN = 7;
 
     public $handlers;
 
@@ -75,8 +77,14 @@ class Renderer
                     $out .= @(string) $val;
                 }
             }
-            elseif ($node->type == self::P_ESC) {
-                $out .= '{';
+            elseif ($node->type == self::P_ESC_VAL) {
+                $out .= '{=';
+            }
+            elseif ($node->type == self::P_ESC_BOPEN) {
+                $out .= '{#';
+            }
+            elseif ($node->type == self::P_ESC_BCLOSE) {
+                $out .= '{/';
             }
             else {
                 $name = Helper::nodeName($node->type);

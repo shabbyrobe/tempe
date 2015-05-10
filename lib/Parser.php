@@ -11,6 +11,12 @@ class Parser
     private $patternTag;
     private $lang;
 
+    private static $escapers = [
+        '{=;' => Renderer::P_ESC_VAL,
+        '{#;' => Renderer::P_ESC_BOPEN,
+        '{/;' => Renderer::P_ESC_BCLOSE,
+    ];
+
     function __construct(Lang $lang=null) 
     {
         $this->lang = $lang;
@@ -30,7 +36,8 @@ class Parser
 
     function tokenise($in)
     {
-        $pattern = '~( \{; | \{\{[#/]? | \}\} | \r\n | \n | \r )~x';
+        // $pattern = '~( \{; | \{\{[#/]? | \}\} | \r\n | \n | \r )~x';
+        $pattern = '~( \{ [=#/] ;?  |  \}  |  \r?\n  )~x';
 
         $flags = PREG_SPLIT_DELIM_CAPTURE | PREG_SPLIT_NO_EMPTY;
         $tokens = preg_split($pattern, $in, null, $flags);
@@ -74,19 +81,19 @@ class Parser
 
             switch ($currentMode) {
             case self::M_STRING:
-                if ($current == '{;' || $current == '{{' || $current == '{{/' || $current == '{{#') {
+                if (isset($current[1]) && $current[0] == '{' && ($current[1] == '=' || $current[1] == '#' || $current[1] == '/')) {
                     if ($buffer) {
                         $node->nodes[] = (object)['type'=>Renderer::P_STRING, 'v'=>$buffer, 'line'=>$bufferLine];
                         $bufferLine = $line;
                     }
-                    if ($current == '{;') {
+                    if ($current == '{=;' || $current == '{#;' || $current == '{/;') {
                         $buffer = '';
-                        $node->nodes[] = (object)['type'=>Renderer::P_ESC, 'v'=>$current, 'line'=>$line];
+                        $node->nodes[] = (object)['type'=>self::$escapers[$current], 'v'=>$current, 'line'=>$line];
                     }
                     else {
                         $buffer = "";
                         $currentMode = self::M_TAG;
-                        $tagType = isset($current[2]) ? $current[2] : null;
+                        $tagType = $current[1];
                     }
                 }
                 else {
@@ -98,13 +105,13 @@ class Parser
                 switch ($current) {
                 
                 // MUST keep this case in sync with the tokens from the tokeniser
-                case '{;': case '{{': case '{{#': case '{{/':
+                case '{%;': case '{#;': case '{/;': case '{%': case '{#': case '{/': 
                     throw new Exception\Parse("Unexpected $current at line $line");
                 break;
 
                 // OK we have the whole tag, now subparse it.
-                case '}}':
-                    $tagString = "{{{$tagType}{$buffer}}}";
+                case '}':
+                    $tagString = "{{$tagType}{$buffer}}";
                     $newNode = null;
 
                     // create a new node if it's not a block close
@@ -256,7 +263,9 @@ class Parser
 
                 case Renderer::P_STRING:
                 case Renderer::P_VALUE:
-                case Renderer::P_ESC:
+                case Renderer::P_ESC_VAL:
+                case Renderer::P_ESC_BCLOSE:
+                case Renderer::P_ESC_BOPEN:
                     $out .= $current->v;
                 break;
 

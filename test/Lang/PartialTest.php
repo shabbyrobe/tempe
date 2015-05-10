@@ -25,7 +25,7 @@ class PartialTest extends \PHPUnit_Framework_TestCase
      */
     function testTraversalFails($handler, $file)
     {
-        $tpl = "{{ $handler $file }}";
+        $tpl = "{= $handler $file }";
         $this->setExpectedException("Tempe\Exception\Check", "Invalid file $file");
         $out = $this->renderer->render($tpl);
     }
@@ -40,54 +40,54 @@ class PartialTest extends \PHPUnit_Framework_TestCase
 
     function testNoAliasFails()
     {
-        $tpl = "{{ tpl file }}";
+        $tpl = "{= tpl file }";
         $this->setExpectedException("Tempe\Exception\Check", "Missing alias in file");
         $out = $this->renderer->render($tpl);
     }
 
     function testUnknownAliasFails()
     {
-        $tpl = "{{ tpl alias/file }}";
+        $tpl = "{= tpl alias/file }";
         $this->setExpectedException("Tempe\Exception\Check", "Unknown alias alias");
         $out = $this->renderer->render($tpl);
     }
 
     function testUnknownFileFails()
     {
-        $tpl = "{{ tpl parts/file }}";
+        $tpl = "{= tpl parts/file }";
         $this->setExpectedException("Tempe\Exception\Check", "Could not load vfs://test/file");
         $out = $this->renderer->render($tpl);
     }
 
     function testTpl()
     {
-        $tpl = "-{{ tpl parts/test.tpl }}-";
-        file_put_contents("vfs://test/test.tpl", "{{ test }}");
+        $tpl = "-{= tpl parts/test.tpl }-";
+        file_put_contents("vfs://test/test.tpl", "{= test }");
         $out = $this->renderer->render($tpl);
         $this->assertEquals("-0-", $out);
     }
 
     function testTplTwice()
     {
-        $tpl = "-{{ tpl parts/test.tpl }}{{ tpl parts/test.tpl }}-";
-        file_put_contents("vfs://test/test.tpl", "{{ test }}");
+        $tpl = "-{= tpl parts/test.tpl }{= tpl parts/test.tpl }-";
+        file_put_contents("vfs://test/test.tpl", "{= test }");
         $out = $this->renderer->render($tpl);
         $this->assertEquals("-01-", $out);
     }
 
     function testTplNested()
     {
-        $tpl = "-{{ tpl parts/child1.tpl }}-";
-        file_put_contents("vfs://test/child1.tpl", "{{ tpl parts/child2.tpl }}");
-        file_put_contents("vfs://test/child2.tpl", "{{ test }}");
+        $tpl = "-{= tpl parts/child1.tpl }-";
+        file_put_contents("vfs://test/child1.tpl", "{= tpl parts/child2.tpl }");
+        file_put_contents("vfs://test/child2.tpl", "{= test }");
         $out = $this->renderer->render($tpl);
         $this->assertEquals("-0-", $out);
     }
 
     function testTplGet()
     {
-        $tpl = "-{{ get file | tpl }}-";
-        file_put_contents("vfs://test/test.tpl", "{{ test }}");
+        $tpl = "-{= get file | tpl }-";
+        file_put_contents("vfs://test/test.tpl", "{= test }");
         $vars = ['file'=>'parts/test.tpl'];
         $out = $this->renderer->render($tpl, $vars);
         $this->assertEquals("-0-", $out);
@@ -95,26 +95,26 @@ class PartialTest extends \PHPUnit_Framework_TestCase
 
     function testIncl()
     {
-        $tpl = "-{{ incl parts/test.txt }}-";
-        file_put_contents("vfs://test/test.txt", "{{ test }}");
+        $tpl = "-{= incl parts/test.txt }-";
+        file_put_contents("vfs://test/test.txt", "{= test }");
         $out = $this->renderer->render($tpl);
-        $this->assertEquals("-{{ test }}-", $out);
+        $this->assertEquals("-{= test }-", $out);
     }
 
     function testInclTwice()
     {
-        $tpl = "-{{ incl parts/test.txt }}{{ incl parts/test.txt }}-";
-        file_put_contents("vfs://test/test.txt", "{{ test }}");
+        $tpl = "-{= incl parts/test.txt }{= incl parts/test.txt }-";
+        file_put_contents("vfs://test/test.txt", "{= test }");
         $out = $this->renderer->render($tpl);
-        $this->assertEquals("-{{ test }}{{ test }}-", $out);
+        $this->assertEquals("-{= test }{= test }-", $out);
     }
 
     function testInclVar()
     {
-        $tpl = "-{{ get file | incl }}-";
-        file_put_contents("vfs://test/test.txt", "{{ test }}");
+        $tpl = "-{= get file | incl }-";
+        file_put_contents("vfs://test/test.txt", "{= test }");
         $vars = ['file'=>'parts/test.txt'];
         $out = $this->renderer->render($tpl, $vars);
-        $this->assertEquals("-{{ test }}-", $out);
+        $this->assertEquals("-{= test }-", $out);
     }
 }

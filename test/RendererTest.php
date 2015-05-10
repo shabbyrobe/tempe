@@ -14,7 +14,7 @@ class RendererTest extends \PHPUnit_Framework_TestCase
 
     function testRenderValueHandlerNoKeyNoFilter()
     {
-        $tpl = '{{h}}';
+        $tpl = '{=h}';
         $tree = $this->parser->parse($tpl);
         
         $lang = new Lang([
@@ -26,7 +26,7 @@ class RendererTest extends \PHPUnit_Framework_TestCase
 
     function testPipeline()
     {
-        $tpl = '{{h | h | h}}';
+        $tpl = '{=h | h | h}';
         $tree = $this->parser->parse($tpl);
         
         $lang = new Lang([
@@ -41,7 +41,7 @@ class RendererTest extends \PHPUnit_Framework_TestCase
      */
     function testRenderValueHandlerStringableOutput($value, $expected)
     {
-        $tpl = '{{h}}';
+        $tpl = '{=h}';
         $tree = $this->parser->parse($tpl);
         
         $lang = new Lang([
@@ -65,7 +65,7 @@ class RendererTest extends \PHPUnit_Framework_TestCase
 
     function testRenderValueSingleHandlerWithKeys()
     {
-        $tpl = '{{h key1 key2}}';
+        $tpl = '{=h key1 key2}';
         $tree = $this->parser->parse($tpl);
         
         $lang = new Lang([
@@ -77,7 +77,7 @@ class RendererTest extends \PHPUnit_Framework_TestCase
 
     function testRenderValueMultipleHandlers()
     {
-        $tpl = '{{h1 | h1 | h2}}';
+        $tpl = '{=h1 | h1 | h2}';
         $lang = new Lang([
             'h1'=>function($h, $in, $ctx) { return $in.'ICE '; },
             'h2'=>function($h, $in, $ctx) { return $in.'BABY '; },
@@ -88,7 +88,7 @@ class RendererTest extends \PHPUnit_Framework_TestCase
 
     function testRenderBlock()
     {
-        $tpl = '{{#h}}{{/}}';
+        $tpl = '{#h}{/}';
         $tree = $this->parser->parse($tpl);
         
         $lang = new Lang([
@@ -100,7 +100,7 @@ class RendererTest extends \PHPUnit_Framework_TestCase
 
     function testRenderBlockSingleHandler()
     {
-        $tpl = '{{#h key}}{{/}}';
+        $tpl = '{#h key}{/}';
         $tree = $this->parser->parse($tpl);
         
         $lang = new Lang([
@@ -112,7 +112,7 @@ class RendererTest extends \PHPUnit_Framework_TestCase
 
     function testRenderBlockCapturesContents()
     {
-        $tpl = '{{#h}}foo{{/}}';
+        $tpl = '{#h}foo{/}';
         $tree = $this->parser->parse($tpl);
         $lang = new Lang([
             'h' => function($h, $in, $ctx) use (&$result) {
@@ -130,7 +130,7 @@ class RendererTest extends \PHPUnit_Framework_TestCase
      */
     function testRenderBlockSubrender()
     {
-        $tpl = '{{#h}}foo {{v}} bar{{/}}';
+        $tpl = '{#h}foo {=v} bar{/}';
         $lang = new Lang([
             'v' => function($h, $in, $ctx) { return "hello"; },
             'h' => function($h, $in, $ctx) {
@@ -146,7 +146,7 @@ class RendererTest extends \PHPUnit_Framework_TestCase
      */
     function testRenderBlockNested()
     {
-        $tpl = '{{#h}}foo {{#h}} bar {{v}} baz {{/}} qux{{/}}';
+        $tpl = '{#h}foo {#h} bar {=v} baz {/} qux{/}';
         $lang = new Lang([
             'v' => function($h, $in, $ctx) { return "hello"; },
             'h' => function($h, $in, $ctx) {
@@ -162,7 +162,7 @@ class RendererTest extends \PHPUnit_Framework_TestCase
      */
     function testRenderBlockCanRenderTreeTwice()
     {
-        $tpl = '{{#h}}1 {{#h}} 2 {{v}} 3 {{/}} 4{{/}}';
+        $tpl = '{#h}1 {#h} 2 {=v} 3 {/} 4{/}';
         $lang = new \Tempe\Lang\Basic([
             'v' => function($h, $in, $ctx) { return "9"; },
             'h' => function($h, $in, $ctx) {
@@ -194,9 +194,10 @@ class RendererTest extends \PHPUnit_Framework_TestCase
     function dataRenderEscapedBraces()
     {
         return [
-            ['{;{;do tag}}',     '{{do tag}}'],
-            ['foo {;{; bar',     'foo {{ bar'],
-            ['{;{;{{do tag}}}}', '{{handled}}'],
+            ['{=;do tag}',     '{=do tag}'],
+            ['foo {{=; bar',     'foo {{= bar'],
+            ['foo {=;{=; bar',     'foo {={= bar'],
+            ['{=;{=do tag}}', '{=handled}'],
         ];
     }
 
@@ -204,7 +205,7 @@ class RendererTest extends \PHPUnit_Framework_TestCase
     {
         $renderer = new Renderer;
         $this->setExpectedException("Tempe\Exception\Parse");
-        $renderer->render("{{do {{; }}");
+        $renderer->render("{=do {=; }");
     }
 
     function testRenderWithDodgyNode()
@@ -219,28 +220,28 @@ class RendererTest extends \PHPUnit_Framework_TestCase
 
     function testRenderEmptyBlock()
     {
-        $tpl = "{{#}}Hmm{{/}}";
+        $tpl = "{#}Hmm{/}";
         $renderer = new Renderer;
         $this->assertEmpty($renderer->render($tpl));
     }
 
     function testRenderWhitespaceBlock()
     {
-        $tpl = "{{#\n\n\t\t  }}Hmm{{/\t\t\n\n  }}";
+        $tpl = "{#\n\n\t\t  }Hmm{/\t\t\n\n  }";
         $renderer = new Renderer;
         $this->assertEmpty($renderer->render($tpl));
     }
 
     function testRenderWhitespaceValue()
     {
-        $tpl = "{{\n\n\t\t  }}";
+        $tpl = "{=\n\n\t\t  }";
         $renderer = new Renderer;
         $this->assertEmpty($renderer->render($tpl));
     }
 
     function testRenderEmptyValue()
     {
-        $tpl = "{{}}";
+        $tpl = "{=}";
         $renderer = new Renderer;
         $this->assertEmpty($renderer->render($tpl));
     }
@@ -261,7 +262,7 @@ class RendererTest extends \PHPUnit_Framework_TestCase
 
     function testRenderCheckPasses()
     {
-        $tpl = "{{ oi oi }}";
+        $tpl = "{= oi oi }";
         $lang = new \Tempe\Lang\Basic(
             ['oi'=>function() { return 'oi'; }],
             ['oi'=>['argc'=>1]]
@@ -274,7 +275,7 @@ class RendererTest extends \PHPUnit_Framework_TestCase
 
     function testRenderCheck()
     {
-        $tpl = "{{ oi }}";
+        $tpl = "{= oi }";
         $lang = new \Tempe\Lang\Basic(
             ['oi'=>function() { return 'oi'; }],
             ['oi'=>['argc'=>1]]
@@ -294,7 +295,7 @@ class RendererTest extends \PHPUnit_Framework_TestCase
             'check'=>function($h, $in, $ctx) { if ($ctx->break) $this->fail("Break did not reset"); },
         ]);
         $renderer = new Renderer($lang);
-        $out = $renderer->render("{{break|nope}}{{check}}");
+        $out = $renderer->render("{=break|nope}{=check}");
         $this->assertEmpty($out);
     }
 
@@ -304,7 +305,7 @@ class RendererTest extends \PHPUnit_Framework_TestCase
             return 'EMPTY!';
         });
         $renderer = new Renderer($lang);
-        $out = $renderer->render("{{ }}");
+        $out = $renderer->render("{= }");
         $this->assertEquals('EMPTY!', $out);
     }
 
@@ -314,7 +315,7 @@ class RendererTest extends \PHPUnit_Framework_TestCase
             return 'EMPTY!';
         });
         $renderer = new Renderer($lang);
-        $out = $renderer->render("{{#}}NOTHING{{/}}");
+        $out = $renderer->render("{#}NOTHING{/}");
         $this->assertEquals('EMPTY!', $out);
     }
 

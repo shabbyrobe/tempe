@@ -69,23 +69,23 @@ sequence**.
 Value and Block Tags
 ~~~~~~~~~~~~~~~~~~~~
 
-All tags are opened with ``{{`` and closed with ``}}``. This cannot be changed.
-
 Value tags are intended to be wholly substituted and look like this::
 
-    {{ chain }}
+    {= chain }
 
 Block tags are used to surround and capture template parts::
 
-    {{# chain }}contents{{/ }}
+    {# chain }contents{/ }
 
 Block tags can be nested to an arbitrary depth::
 
-    {{# chain }}{{# chain }}{{/ }}{{/ }}
+    {# chain }{# chain }{/ }{/ }
 
 Blocks can be named to make closing tags easier to identify::
 
-    {{# b1: chain }} {{# b2: chain }} {{/ b2 }} {{/ b1 }}
+    {# b1: chain } {# b2: chain } {/ b2 } {/ b1 }
+
+Tag delimiters cannot be changed.
 
 
 Handler Chain
@@ -98,7 +98,7 @@ input of the next. The last handler in the chain connects to the renderer's outp
 
 Each handler is separated by a pipe. You can chain as many handlers together as you wish::
 
-    {{ handler | handler | handler }}
+    {= handler | handler | handler }
 
 A handler is made up of one or more **identifiers**. Identifiers must satisfy the
 following regex::
@@ -108,51 +108,53 @@ following regex::
 The first identifier is considered the handler name, all subsequent identifiers are
 considered arguments::
 
-    {{ handler1 arg1 arg2 | handler2 arg1 arg2 }}
+    {= handler1 arg1 arg2 | handler2 arg1 arg2 }
 
 Whitespace inside tags between identifiers and pipes is ignored. The following tags are
 identical::
 
-    {{handler1 arg1 arg2|handler2|handler3}}
-    {{  handler1   arg1   arg2  |  handler2  |  handler3  }}
-    {{  handler1 arg1 arg2 | 
-        handler2  |  handler3  }}
+    {=handler1 arg1 arg2|handler2|handler3}
+    {=  handler1   arg1   arg2  |  handler2  |  handler3  }
+    {=  handler1 arg1 arg2 | 
+        handler2  |  handler3  }
 
 "Whitespace" is equivalent to the PCRE ``\s`` escape sequence (LF, CR, FF, HTAB, SPACE).
 
 Whitespace-only tags and empty tags are allowed. This can be used for basic whitespace
 control::
 
-    {{}}
-    {{
-        }}
-    {{#    }}{{/      }}
+    {=}
+    {=
+        }
+    {#    }{/      }
 
 You can simulate template comments by using an empty block. This does not affect the
 parser, only the renderer::
 
-    {{#}}This will not appear{{/}}
+    {#}This will not appear{/}
 
 
-Escape Sequence
-~~~~~~~~~~~~~~~
+Escape Sequences
+~~~~~~~~~~~~~~~~
 
-The escape sequence simply emits a curly brace and looks like this::
+Escape sequences are needed when you want to include the literal value of a tag opening in
+your output.
 
-    {;
+Simply affix a semicolon to a tag opener to turn it into an escape sequence.
 
-It allows you to include the tag opener (``{{``) in your output like so::
+- ``{=;`` becomes ``{=`` in the output
+- ``{#;`` becomes ``{#`` in the output
+- ``{/;`` becomes ``{/`` in the output
 
-    {;{;
+For example, this template::
 
-It is not necessary to escape a single curly brace except to disambiguate it from a tag
-opening. The following does not require the escape sequence::
+    Value tags look like this: {=; foo }
+    Block tags look like this: {#; id: foo }bar{/; foo }
 
-    {"json": {"yep": {{ get value | as js }} }}
+Will yield the output::
 
-But this example does::
-
-    {"json": {;{{ get key | as js }}: "yep" }}
+    Value tags look like this: {= foo bar }
+    Block tags look like this: {# id: foo }bar{/ foo }
 
 
 Language
@@ -168,12 +170,12 @@ the Tempe source directory, you will get a shell with Tempe set up and ready to 
     ~/php/tempe$ boris
     Tempe Shell
 
-    [1] boris> dumptpl("{{ get foo }}");
+    [1] boris> dumptpl("{= get foo }");
     0  1 P_ROOT     |  
     1  1   P_VALUE  |  get (foo)
      → NULL
 
-    [2] boris> render("{{ get foo }}", ['foo'=>'bar']);
+    [2] boris> render("{= get foo }", ['foo'=>'bar']);
     Render:
     ---
     bar
@@ -188,15 +190,15 @@ Handlers
 
 Get the variable ``foo`` and write to the output::
 
-    {{ get foo }}
+    {= get foo }
 
 Get the variable ``foo``, escape as HTML then write to the output::
 
-    {{ get foo | as html }}
+    {= get foo | as html }
 
 Nested escape contexts can be handled in a single call to ``as``::
 
-    <a href="url.php?arg={{ get foo | as html urlquery }}">foo</a>
+    <a href="url.php?arg={= get foo | as html urlquery }">foo</a>
 
 .. warning::
 
@@ -211,48 +213,48 @@ Nested escape contexts can be handled in a single call to ``as``::
 
 Nested variable lookup::
     
-    Given the hash {"foo": {"bar": "yep"}}
-    This should print "yep": {{ get foo | get bar }}
+    Given the hash {"foo": {"bar": "yep"}
+    This should print "yep": {= get foo | get bar }
 
 Set a variable to the contents of a block::
 
-    Should print nothing: {{# set foo }}Hello World{{/}}
-    Should print "Hello World": {{ get foo }}
+    Should print nothing: {# set foo }Hello World{/}
+    Should print "Hello World": {= get foo }
 
 Set a variable from a different variable, overwriting if it already exists::
 
-    {{# set foo }}hello{{/}}
-    {{# set bar }}world{{/}}
-    {{ get foo | set bar }}
-    Should print hello: {{ get bar }}
+    {# set foo }hello{/}
+    {# set bar }world{/}
+    {= get foo | set bar }
+    Should print hello: {= get bar }
 
 Display a block if variable ``foo`` is truthy::
 
-    {{# get foo | show }}Truthy!{{/}}
+    {# get foo | show }Truthy!{/}
 
 Display a block if variable ``foo`` is equal to the **value** ``hello``::
 
-    {{# get foo | eq hello | show }}Hello!{{/}}
+    {# get foo | eq hello | show }Hello!{/}
 
 Display a block if variable ``foo`` is **not** equal to the **value** ``hello``::
 
-    {{# get foo | eq hello | not | show }}Goodbye!{{/}}
+    {# get foo | eq hello | not | show }Goodbye!{/}
 
 ``eq`` is limited to loose comparisons with **identifiers**. Comparisons can be done
 between variables using ``eqvar``::
 
     Given the hash {"foo": "yep", "bar": "yep"}
     This block should render: 
-    {{# get foo | eqvar bar | show }}foo is equal to bar!{{/}}
+    {# get foo | eqvar bar | show }foo is equal to bar!{/}
 
 Complex expressions can be tested using a combination of ``set`` and ``eqvar``. This
 allows the use of concatenation in comparisons::
 
-    {{# set foo }}hel{{/}}
-    {{# set bar }}lo{{/}}
-    {{# set expr}}{{ get foo }}{{ get bar }}{{/}}
-    {{# set test }}hello{{/}}
-    {{# get expr | eqvar test | show }}This should show!{{/}}
+    {# set foo }hel{/}
+    {# set bar }lo{/}
+    {# set expr}{= get foo }{= get bar }{/}
+    {# set test }hello{/}
+    {# get expr | eqvar test | show }This should show!{/}
 
 Block iteration::
 
@@ -260,16 +262,16 @@ Block iteration::
     {"foo": [ {"a": 1, "b": 2}, {"a": 3, "b": 4} ]}
 
     This template:
-    {{# each foo }}
-        Key:            {{ get _key_ }}
-        Value:          {{ get _value_ | get a }}
-        0-based index:  {{ get _idx_ }}
-        1-based number: {{ get _num_ }}
-        Is it first?:   {{#get _first_|show}}Yep!{{/}}{{#get _first_|not|show}}Nup!{{/}}
+    {# each foo }
+        Key:            {= get _key_ }
+        Value:          {= get _value_ | get a }
+        0-based index:  {= get _idx_ }
+        1-based number: {= get _num_ }
+        Is it first?:   {#get _first_|show}Yep!{/}{#get _first_|not|show}Nup!{/}
 
         `foo` is merged with the current scope:
-            {{ get a }}, {{ get b }}
-    {{/}}
+            {= get a }, {= get b }
+    {/}
 
     Will output:
 
@@ -293,26 +295,26 @@ Block iteration::
 
 Push an array onto the current scope for a block::
 
-    Given the hash:   {"foo": {"bar": "hello"}}
-    The template:     {{# push foo }}{{ get bar }}{{/}}
+    Given the hash:   {"foo": {"bar": "hello"}
+    The template:     {# push foo }{= get bar }{/}
     Should output:    hello
 
 Build a nested array using ``push``::
 
-    {{# a: push foo }}
-    {{# b: push bar }}
-    {{# set baz }}hello{{/}}
-    {{/ b }}
-    {{/ a }}
-    Should print 'hello': {{ get foo | get bar | get baz }}
+    {# a: push foo }
+    {# b: push bar }
+    {# set baz }hello{/}
+    {/ b }
+    {/ a }
+    Should print 'hello': {= get foo | get bar | get baz }
 
 Handlers are chainable. This contrived example makes an entire block upper case, then html
 escapes it, then sets it to another variable::
 
-    {{# show | upper | as html | set foo }}
+    {# show | upper | as html | set foo }
     foo & bar
-    {{/}}
-    Should show "FOO &amp; BAR": {{ get foo }}
+    {/}
+    Should show "FOO &amp; BAR": {= get foo }
  
 
 Handler Reference
@@ -342,7 +344,7 @@ Tempe provides the following handlers as part of its core language:
 
     Lookups can be nested. The following outputs ``hello``::
 
-        render("{{ get foo | get bar }}", ['foo'=>['bar'=>'hello']]);
+        render("{= get foo | get bar }", ['foo'=>['bar'=>'hello']]);
 
 
 ``set``
@@ -375,7 +377,7 @@ Tempe provides the following handlers as part of its core language:
 
     This handler is really only useful for influencing other handlers, like ``show``::
 
-        {{# get foo | eq hello | show }} Will show if 'foo'=='hello'! {{/}}
+        {# get foo | eq hello | show } Will show if 'foo'=='hello'! {/}
 
 
 ``eqvar``
@@ -392,10 +394,10 @@ Tempe provides the following handlers as part of its core language:
     
     If the comparison value does not exist in the scope, create it::
 
-        {{# set test }}HELLO!.{{/}}
-        {{# get foo | eqvar test | show }}
+        {# set test }HELLO!.{/}
+        {# get foo | eqvar test | show }
             Will show if 'foo' == 'HELLO!'
-        {{/}}
+        {/}
 
 
 ``not``
@@ -409,9 +411,9 @@ Tempe provides the following handlers as part of its core language:
 
     Example::
         
-        {{# get foo | not | show }}
+        {# get foo | not | show }
             If foo is not truthy, this will show
-        {{/}}
+        {/}
 
 
 ``each``
@@ -492,7 +494,7 @@ your own handlers:
     $lang = new \Tempe\Lang\Basic($handlers);
     $renderer = new \Tempe\Renderer($lang);
 
-    echo $renderer->render('{{ foo }}{{ bar }}');
+    echo $renderer->render('{= foo }{= bar }');
 
 .. note::
     
@@ -515,7 +517,7 @@ Handler functions take three arguments:
     - ``args``: array of arguments to the handler
     - ``argc``: number of arguments
 
-    Given the template ``{{ h 1 2 3 }}``, ``name`` will be set to ``h``, ``args`` will be
+    Given the template ``{= h 1 2 3 }``, ``name`` will be set to ``h``, ``args`` will be
     set to ``[1, 2, 3]``, and ``argc`` will be set to 3.
 
 ``$in``:
@@ -567,7 +569,7 @@ corresponding to the handler's tag. A node object contains the following propert
     The line in the template that this tag was opened on.
 
 ``id``
-    If the tag contains an id (the part before the colon ``{{ myid: handler }}``, this
+    If the tag contains an id (the part before the colon ``{= myid: handler }``, this
     will be available here, otherwise it will be ``null``.
 
 ``chain``
@@ -594,7 +596,7 @@ Recursion
     $lang = new \Tempe\Lang\Basic($handlers);
     $renderer = new \Tempe\Renderer($lang);
 
-    echo $renderer->render('{{# foo }}{{ bar }}{{/}}');
+    echo $renderer->render('{# foo }{= bar }{/}');
 
 The above example prints ``foo``. The Exception is never triggered. If you want to write a
 handler that returns the contents of the block, you can make use of the
@@ -612,7 +614,7 @@ handler that returns the contents of the block, you can make use of the
     $lang = new \Tempe\Lang\Basic($handlers);
     $renderer = new \Tempe\Renderer($lang);
 
-    echo $renderer->render('{{# foo }}{{ bar }}{{/}}');
+    echo $renderer->render('{# foo }{= bar }{/}');
 
 This time we get ``bar`` as our output.
 
@@ -637,7 +639,7 @@ ArrayAccess as your scope if you are planning on making modifications in your bl
     ];
     $renderer = new \Tempe\Renderer(new \Tempe\Lang\Basic($handlers));
 
-    $tpl = "{{# block }}{{ get foo }}{{/}} {{ get foo }}";
+    $tpl = "{# block }{= get foo }{/} {= get foo }";
 
     $scope = ['foo'=>'outside'];
     assert("inside outside" == $renderer->render($tpl, $scope));
@@ -697,10 +699,10 @@ as well. These rules will be applied at parse time:
     $renderer = new \Tempe\Renderer($lang);
 
     // throws "Handler 'myHandler' expected 1 arg(s), found 2 at line 1"
-    $renderer->render('{{ myHandler a b }}');
+    $renderer->render('{= myHandler a b }');
 
     // throws "Handler 'myHandler' expected to be first, but found at pos 2 at line 1
-    $renderer->render('{{ myHandler a | myHandler a b }}');
+    $renderer->render('{= myHandler a | myHandler a b }');
 
 
 You can also instruct the renderer to check while rendering if you like. This can be
@@ -743,27 +745,27 @@ Available rules
     is false for handler ``lonesome``::
     
         Valid: 
-            {{ lonesome }}
-            {{# lonesome }}{{/}}
+            {= lonesome }
+            {# lonesome }{/}
 
         Invalid:
-            {{ foo | lonesome | bar }}
-            {{ lonesome | bar }}
-            {{ bar | lonesome }}
+            {= foo | lonesome | bar }
+            {= lonesome | bar }
+            {= bar | lonesome }
     
 ``last`` - bool, default: null
-    If ``true``, no handlers can come after this one in a chain. Valid: ``{{ foo |
-    mustbelast }}``. Invalid: ``{{ foo | mustbelast | bar }}``.
+    If ``true``, no handlers can come after this one in a chain. Valid: ``{= foo |
+    mustbelast }``. Invalid: ``{= foo | mustbelast | bar }``.
 
-    If ``false``, this handler must not be last in a chain. Valid: ``{{ foo |
-    mustnotbelast | bar }}``. Invalid: ``{{ foo | bar | mustnotbelast }}``.
+    If ``false``, this handler must not be last in a chain. Valid: ``{= foo |
+    mustnotbelast | bar }``. Invalid: ``{= foo | bar | mustnotbelast }``.
 
 ``first`` - bool, default: null
-    If ``true``, this handler **must** be the first handler in the chain. Valid: ``{{
-    mustbefirst | foo }}``. Invalid: ``{{ foo | mustbefirst }}``
+    If ``true``, this handler **must** be the first handler in the chain. Valid: ``{=
+    mustbefirst | foo }``. Invalid: ``{= foo | mustbefirst }``
 
-    If ``false``, this handler **must not** be first in the chain. Valid: ``{{ foo |
-    mustnotbefirst }}``. Invalid: ``{{ mustnotbefirst }}``.
+    If ``false``, this handler **must not** be first in the chain. Valid: ``{= foo |
+    mustnotbefirst }``. Invalid: ``{= mustnotbefirst }``.
 
 ``check`` - callable
     Pass any function you like to this. It will receive the following arguments::
@@ -809,19 +811,20 @@ Perhaps the best way of demonstrating how the parser works is to show you the ou
     <?php
     $tpl = "
     Here's a value tag. The handler is 'hello':
-    {{ hello world }}
+    {= hello world }
 
     Here's a chained value tag:
-    {{ foo bar | baz qux | ding dang dong }}
+    {= foo bar | baz qux | ding dang dong }
 
     Ooh, escape sequence:
-    {;{ foo bar }}
+    {=; foo bar }
+    {#; foo bar }{/; }
 
     Here's a named block tag with some stuff inside:
-    {{# mystuff: group }}
-        {{ pants }}
-        {{# morestuff }}{{ pants }}{{/}}
-    {{/ mystuff }}
+    {# mystuff: group }
+        {= pants }
+        {# morestuff }{= pants }{/}
+    {/ mystuff }
     ";
     $parser = new \Tempe\Parser();
     \Tempe\Helper::dumpNode($parser->parse($tpl));
@@ -835,7 +838,7 @@ The output (columns are depth, line, type or id, and info)::
     1   5   P_VALUE       |  foo (bar) -> baz (qux) -> ding (dang dong)
     1   5   P_STRING      |  "\n\nOoh, escape sequen..."
     1   8   P_ESC         |  
-    1   8   P_STRING      |  "{ foo bar }}\n\nHere's..."
+    1   8   P_STRING      |  "{ foo bar }\n\nHere's..."
     1  11   mystuff       |  group ()
     2  11     P_STRING    |  "\n    "
     2  12     P_VALUE     |  pants ()
@@ -883,7 +886,7 @@ You don't like, want or need what ``Tempe\Lang\Basic`` offers? No problem! Just 
     }
     $lang = new MyLang();
     $renderer = new \Tempe\Renderer($lang);
-    echo $renderer->render("{{ foo }}{{ bar }}{{ baz qux }}{{}}");
+    echo $renderer->render("{= foo }{= bar }{= baz qux }{=}");
 
 Output::
 

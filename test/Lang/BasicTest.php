@@ -13,7 +13,7 @@ class BasicTest extends \PHPUnit_Framework_TestCase
             ['h'=>function() {}], ['h'=>['argMin'=>2]]
         ));
         $this->setExpectedException('Tempe\Exception\Check', "Handler 'h' min args 2, found 1 at line 1");
-        $parser->parse('{{ h arg }}');
+        $parser->parse('{= h arg }');
     }
 
     function testCheckArgMax()
@@ -22,7 +22,7 @@ class BasicTest extends \PHPUnit_Framework_TestCase
             ['h'=>function() {}], ['h'=>['argMax'=>1]]
         ));
         $this->setExpectedException('Tempe\Exception\Check', "Handler 'h' max args 1, found 2 at line 1");
-        $parser->parse('{{ h arg1 arg2 }}');
+        $parser->parse('{= h arg1 arg2 }');
     }
 
     function testCheckArgcTooMany()
@@ -31,7 +31,7 @@ class BasicTest extends \PHPUnit_Framework_TestCase
             ['h'=>function() {}], ['h'=>['argc'=>2]]
         ));
         $this->setExpectedException('Tempe\Exception\Check', "Handler 'h' expected 2 arg(s), found 3 at line 1");
-        $parser->parse('{{ h arg1 arg2 arg3 }}');
+        $parser->parse('{= h arg1 arg2 arg3 }');
     }
 
     function testCheckArgcTooFew()
@@ -40,7 +40,7 @@ class BasicTest extends \PHPUnit_Framework_TestCase
             ['h'=>function() {}], ['h'=>['argc'=>2]]
         ));
         $this->setExpectedException('Tempe\Exception\Check', "Handler 'h' expected 2 arg(s), found 1 at line 1");
-        $parser->parse('{{ h arg1 }}');
+        $parser->parse('{= h arg1 }');
     }
 
     function testCheckPreventValue()
@@ -49,7 +49,7 @@ class BasicTest extends \PHPUnit_Framework_TestCase
             ['h'=>function() { return 'yep'; }], ['h'=>['allowValue'=>false]]
         ));
         $this->setExpectedException('Tempe\Exception\Check', "Handler 'h' can not be used with a value tag at line 1");
-        $parser->parse('{{ h arg1 }}');
+        $parser->parse('{= h arg1 }');
     }
 
     function testCheckPreventBlock()
@@ -58,30 +58,30 @@ class BasicTest extends \PHPUnit_Framework_TestCase
             ['h'=>function() { return 'yep'; }], ['h'=>['allowBlock'=>false]]
         ));
         $this->setExpectedException('Tempe\Exception\Check', "Handler 'h' can not be used with a block tag at line 1");
-        $parser->parse('{{# h arg1 }}{{/}}');
+        $parser->parse('{# h arg1 }{/}');
     }
 
     function testCheckLast()
     {
         $h = ['foo'=>function() {}, 'last'=>function() {}];
         $parser = new Parser(new Basic($h, ['last'=>['last'=>true]]));
-        $this->assertNotEmpty($parser->parse('{{ foo | last }}'));
-        $this->assertNotEmpty($parser->parse('{{ foo | foo | last }}'));
-        $this->assertNotEmpty($parser->parse('{{ last }}'));
+        $this->assertNotEmpty($parser->parse('{= foo | last }'));
+        $this->assertNotEmpty($parser->parse('{= foo | foo | last }'));
+        $this->assertNotEmpty($parser->parse('{= last }'));
 
         $this->setExpectedException('Tempe\Exception\Check', "Handlers must not follow 'last' in a chain at line 1");
-        $parser->parse('{{ last | foo }}');
+        $parser->parse('{= last | foo }');
     }
 
     function testCheckNotLast()
     {
         $h = ['foo'=>function() {}, 'notLast'=>function() {}];
         $parser = new Parser(new Basic($h, ['notLast'=>['last'=>false]]));
-        $this->assertNotEmpty($parser->parse('{{ notLast | foo }}'));
-        $this->assertNotEmpty($parser->parse('{{ foo | notLast | foo }}'));
+        $this->assertNotEmpty($parser->parse('{= notLast | foo }'));
+        $this->assertNotEmpty($parser->parse('{= foo | notLast | foo }'));
 
         $this->setExpectedException('Tempe\Exception\Check', "Handlers must follow 'notLast' in a chain at line 1");
-        $parser->parse('{{ foo | notLast }}');
+        $parser->parse('{= foo | notLast }');
     }
 
     function testCheckNotChainable()
@@ -89,7 +89,7 @@ class BasicTest extends \PHPUnit_Framework_TestCase
         $h = ['h'=>function() {}];
         $parser = new Parser(new Basic($h, ['h'=>['chainable'=>false]]));
         $this->setExpectedException('Tempe\Exception\Check', "Handler 'h' is not chainable at line 1");
-        $parser->parse('{{ h | h }}');
+        $parser->parse('{= h | h }');
     }
 
     function testCheckFirst()
@@ -97,10 +97,10 @@ class BasicTest extends \PHPUnit_Framework_TestCase
         $h = ['foo'=>function() {}, 'first'=>function() {}];
         $parser = new Parser(new Basic($h, ['first'=>['first'=>true]]));
 
-        $this->assertNotEmpty($parser->parse('{{ first | foo }}'));
+        $this->assertNotEmpty($parser->parse('{= first | foo }'));
 
         $this->setExpectedException('Tempe\Exception\Check', "Handler 'first' must be first, but found at pos 2 at line 1");
-        $parser->parse('{{ foo | first }}');
+        $parser->parse('{= foo | first }');
     }
 
     function testCheckNotFirst()
@@ -108,12 +108,12 @@ class BasicTest extends \PHPUnit_Framework_TestCase
         $h = ['foo'=>function() {}, 'h'=>function() {}];
         $parser = new Parser(new Basic($h, ['h'=>['first'=>false]]));
 
-        $this->assertNotEmpty($parser->parse('{{ foo | h }}'));
-        $this->assertNotEmpty($parser->parse('{{ foo | h | h }}'));
-        $this->assertNotEmpty($parser->parse('{{# foo | h | h }}{{/}}'));
+        $this->assertNotEmpty($parser->parse('{= foo | h }'));
+        $this->assertNotEmpty($parser->parse('{= foo | h | h }'));
+        $this->assertNotEmpty($parser->parse('{# foo | h | h }{/}'));
 
         $this->setExpectedException('Tempe\Exception\Check', "Handler 'h' must not be first at line 1");
-        $parser->parse('{{ h | foo }}');
+        $parser->parse('{= h | foo }');
     }
 
     function testCheckCallbackOkOnTrue()
@@ -121,7 +121,7 @@ class BasicTest extends \PHPUnit_Framework_TestCase
         $h = ['yep'=>function() {}];
         $r = ['yep'=>['check'=>function() { return true; }]];
         $parser = new Parser(new Basic($h, $r));
-        $this->assertNotEmpty($parser->parse('{{ yep }}'));
+        $this->assertNotEmpty($parser->parse('{= yep }'));
     }
 
     function testCheckCallbackFailsOnFalse()
@@ -130,7 +130,7 @@ class BasicTest extends \PHPUnit_Framework_TestCase
         $r = ['nup'=>['check'=>function() { return false; }]];
         $parser = new Parser(new Basic($h, $r));
         $this->setExpectedException('Tempe\Exception\Check', "Handler 'nup' check failed at line 1");
-        $parser->parse('{{ nup }}');
+        $parser->parse('{= nup }');
     }
 
     function testCheckCallbackFailsOnException()
@@ -141,7 +141,7 @@ class BasicTest extends \PHPUnit_Framework_TestCase
         }]];
         $parser = new Parser(new Basic($h, $r));
         $this->setExpectedException('Tempe\Exception\Check', "NUP!");
-        $parser->parse('{{ nup }}');
+        $parser->parse('{= nup }');
     }
 
     function testHandlerUnknown()
@@ -150,6 +150,6 @@ class BasicTest extends \PHPUnit_Framework_TestCase
         $parser = new \Tempe\Parser;
         $renderer = new \Tempe\Renderer($lang);
         $this->setExpectedException("Tempe\Exception\Render", "Handler 'nope' not found at line 1");
-        $renderer->renderTree($parser->parse("{{nope}}"));
+        $renderer->renderTree($parser->parse("{=nope}"));
     }
 }
