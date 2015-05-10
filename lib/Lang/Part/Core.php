@@ -201,11 +201,17 @@ class Core
                 }
                 if (isset($handler->args[1])) {
                     foreach ($handler->args as $arg) {
+                        if (!method_exists($e, $arg)) {
+                            throw new Exception\Render("Unknown escaper '{$arg}' in 'as'", $context->node->line);
+                        }
                         $in = $e->{$arg}($in);
                     }
                     return $in;
                 }
                 else {
+                    if (!method_exists($e, $handler->args[0])) {
+                        throw new Exception\Render("Unknown escaper '{$handler->args[0]}' in 'as'", $context->node->line);
+                    }
                     return $e->{$handler->args[0]}($in);
                 }
             };
