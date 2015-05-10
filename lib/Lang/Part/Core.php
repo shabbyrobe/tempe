@@ -136,8 +136,9 @@ class Core
                     $iter = $in;
                 }
                 elseif ($key) {
-                    if (!array_key_exists($key, $context->scope))
+                    if (!array_key_exists($key, $context->scope)) {
                         throw new Exception\Render("'each' could not find key '$key' in scope", $context->node->line);
+                    }
                     $iter = $context->scope[$key];
                 }
 
