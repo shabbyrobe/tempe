@@ -29,7 +29,7 @@ class Renderer
     {
         $ext = [
             new Ext\Lang(isset($options['lang']) ? $options['lang'] : []), 
-            new Ext\String
+            new Ext\Strings
         ];
         return new static($ext);
     }

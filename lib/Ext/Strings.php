@@ -1,7 +1,7 @@
 <?php
 namespace Tempe\Ext;
 
-class String
+class Strings
 {
     function __construct()
     {

@@ -11,6 +11,18 @@ class RendererTest extends \PHPUnit_Framework_TestCase
         $this->parser = new Parser();
     }
 
+    function testCreateBasic()
+    {
+        $renderer = Renderer::createBasic();
+        $this->assertInstanceOf(Renderer::class, $renderer);
+    }
+
+    function testCreateBasicWeb()
+    {
+        $renderer = Renderer::createBasicWeb();
+        $this->assertInstanceOf(Renderer::class, $renderer);
+    }
+
     function testRenderValueHandlerNoKeyNoFilter()
     {
         $tpl = '{{h}}';

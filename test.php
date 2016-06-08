@@ -51,7 +51,7 @@ $args = array(
 $suite = new PHPUnit_Framework_TestSuite();
 suite_add_dir($suite, $basePath.'/test/');
 
-$filter = new PHP_CodeCoverage_Filter();
+$filter = new \SebastianBergmann\CodeCoverage\Filter();
 $filter->addDirectoryToWhitelist($basePath.'/lib/', '.php');
 
 $runner = new PHPUnit_TextUI_TestRunner(null, $filter);
