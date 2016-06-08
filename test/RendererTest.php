@@ -14,13 +14,13 @@ class RendererTest extends \PHPUnit_Framework_TestCase
     function testCreateBasic()
     {
         $renderer = Renderer::createBasic();
-        $this->assertInstanceOf(Renderer::class, $renderer);
+        $this->assertInstanceOf('Tempe\Renderer', $renderer);
     }
 
     function testCreateBasicWeb()
     {
         $renderer = Renderer::createBasicWeb();
-        $this->assertInstanceOf(Renderer::class, $renderer);
+        $this->assertInstanceOf('Tempe\Renderer', $renderer);
     }
 
     function testRenderValueHandlerNoKeyNoFilter()
