@@ -24,6 +24,51 @@ primitives, see guts_.
     :depth: 2
 
 
+Quickstart
+----------
+
+Install using composer::
+
+    composer require shabbyrobe/tempe:2.*@beta
+
+
+A typical Tempe template::
+
+    Hello {= get name }
+    You have just won {= get value } dollars!
+    {# get in_ca | show }
+    Well, {= get taxed_value } dollars, after taxes.
+    {/ }
+
+Given the following hash::
+
+    {
+      "name": "Chris",
+      "value": 10000,
+      "taxed_value": 10000 - (10000 * 0.4),
+      "in_ca": true
+    }
+
+Will produce the following::
+
+    Hello Chris
+    You have just won 10000 dollars!
+    Well, 6000.0 dollars, after taxes.
+
+In PHP:
+
+.. code-block:: php
+
+    <?php
+    $lang = Tempe\Lang\Factory::createBasic();
+    $renderer = new Tempe\Renderer($lang);
+    $scope = [
+        'foo' => 'hello',
+        'bar' => 'world',
+    ];
+    $renderer->render('{= get foo } {= get bar }!', $scope);
+
+
 Why?
 ----
 
@@ -267,7 +312,7 @@ Block iteration::
         Value:          {= get _value_ | get a }
         0-based index:  {= get _idx_ }
         1-based number: {= get _num_ }
-        Is it first?:   {#get _first_|show}Yep!{/}{#get _first_|not|show}Nup!{/}
+        Is it first?:   {# get _first_ | show }Yep!{/}{# get _first_ | not |show }Nup!{/}
 
         `foo` is merged with the current scope:
             {= get a }, {= get b }
@@ -438,6 +483,20 @@ Tempe provides the following handlers as part of its core language:
     Escape input using supplied context
 
     Syntax: ``<input> | as <context>``
+       
+    Available escape contexts:
+
+    - cssString
+    - html
+    - htmlAttr
+    - htmlComment
+    - htmlAttrUnquoted
+    - js
+    - jsQuoted
+    - urlQuery
+    - xml
+    - xmlAttr
+    - xmlComment
 
     Valid contexts: block
     
@@ -478,6 +537,32 @@ String filters
 - ``nl2br``: convert each newline to a ``<br />``
 
 
+Caching
+-------
+   
+Tempe does no caching by itself, but you can cache the parse tree yourself:
+
+.. code-block:: php
+
+    <?php
+    $lang = Tempe\Lang\Factory::createBasic();
+    $parser = new Tempe\Parser($lang);
+    $renderer = new Tempe\Renderer($lang, $parser);
+    
+    $tpl = '{= get foo } {= get bar }!';
+    $tree = get_the_tree_from_cache($tpl);
+    if (!$tree) {
+        $tree = $parser->parse($tpl);
+        cache_the_tree_pls($tpl, $tree);
+    }
+   
+    $scope = [
+        'foo' => 'hello',
+        'bar' => 'world',
+    ];
+    $renderer->renderTree($tree, $scope);
+
+
 Guts
 ----
 
@@ -493,7 +578,7 @@ your own handlers:
     ];
     $lang = new \Tempe\Lang\Basic($handlers);
     $renderer = new \Tempe\Renderer($lang);
-
+   
     echo $renderer->render('{= foo }{= bar }');
 
 .. note::
@@ -595,7 +680,7 @@ Recursion
     ];
     $lang = new \Tempe\Lang\Basic($handlers);
     $renderer = new \Tempe\Renderer($lang);
-
+   
     echo $renderer->render('{# foo }{= bar }{/}');
 
 The above example prints ``foo``. The Exception is never triggered. If you want to write a
@@ -613,7 +698,7 @@ handler that returns the contents of the block, you can make use of the
     ];
     $lang = new \Tempe\Lang\Basic($handlers);
     $renderer = new \Tempe\Renderer($lang);
-
+   
     echo $renderer->render('{# foo }{= bar }{/}');
 
 This time we get ``bar`` as our output.
@@ -638,12 +723,12 @@ ArrayAccess as your scope if you are planning on making modifications in your bl
         'get'=>function($h, $in, $ctx) { return $ctx->scope[$h->args[0]]; },
     ];
     $renderer = new \Tempe\Renderer(new \Tempe\Lang\Basic($handlers));
-
+   
     $tpl = "{# block }{= get foo }{/} {= get foo }";
-
+   
     $scope = ['foo'=>'outside'];
     assert("inside outside" == $renderer->render($tpl, $scope));
-
+   
     $scope = new \ArrayObject(['foo'=>'outside']);
     assert("inside inside" == $renderer->render($tpl, $scope));
 
@@ -689,18 +774,18 @@ as well. These rules will be applied at parse time:
         'myHandler'=>['argc'=>1, 'first'=>true],
     ];
     $lang = new \Tempe\Lang\Basic($handlers, $rules);
-
+   
     // if you are creating the parser by hand, you must pass the language
     $parser = new \Tempe\Parser($lang);
     $renderer = new \Tempe\Renderer($lang, $parser);
-
+   
     // if you are allowing the renderer to create the default parser for you, 
     // the language will also be passed.
     $renderer = new \Tempe\Renderer($lang);
-
+   
     // throws "Handler 'myHandler' expected 1 arg(s), found 2 at line 1"
     $renderer->render('{= myHandler a b }');
-
+   
     // throws "Handler 'myHandler' expected to be first, but found at pos 2 at line 1
     $renderer->render('{= myHandler a | myHandler a b }');
 
@@ -713,10 +798,10 @@ rendering, but it will slow the render down so it is off by default.
 
     <?php
     $renderer = new \Tempe\Renderer($lang, $parser, !!'check');
-
+   
     // use the default lang and parser
     $renderer = new \Tempe\Renderer(null, null, !!'check');
-
+   
     // set it as a property instead
     $renderer = new \Tempe\Renderer();
     $renderer->check = true;
@@ -812,14 +897,14 @@ Perhaps the best way of demonstrating how the parser works is to show you the ou
     $tpl = "
     Here's a value tag. The handler is 'hello':
     {= hello world }
-
+   
     Here's a chained value tag:
     {= foo bar | baz qux | ding dang dong }
-
+   
     Ooh, escape sequence:
     {=; foo bar }
     {#; foo bar }{/; }
-
+   
     Here's a named block tag with some stuff inside:
     {# mystuff: group }
         {= pants }
@@ -869,7 +954,7 @@ You don't like, want or need what ``Tempe\Lang\Basic`` offers? No problem! Just 
         {
             return true;
         }
-
+   
         function handle($handler, $in, \Tempe\HandlerContext $context)
         {
             switch ($handler->name) {
@@ -878,7 +963,7 @@ You don't like, want or need what ``Tempe\Lang\Basic`` offers? No problem! Just 
             default: return $handler->name."(".implode(", ", $handler->args).") ";
             }
         }
-
+   
         function handleEmpty(\Tempe\HandlerContext $context)
         {
             return "<empty>";

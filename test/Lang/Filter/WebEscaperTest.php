@@ -54,7 +54,7 @@ class WebEscaperTest extends \PHPUnit_Framework_TestCase
 	 */
 	public function testUnquotedHtmlAttrValid($in, $test)
 	{
-		$this->assertEscapedHtmlAttrValid($in, $test, 'unquotedHtmlAttr');
+		$this->assertEscapedHtmlAttrValid($in, $test, 'htmlAttrUnquoted');
 	}
 	
 	public function dataForUnquotedHtmlAttrValid()
@@ -81,8 +81,9 @@ class WebEscaperTest extends \PHPUnit_Framework_TestCase
 	{
 		$tests = $this->getHtmlSpecialCharsCharacterTests();
 		$chrs = [96];
-		foreach ($chrs as $c)
+		foreach ($chrs as $c) {
 			$tests[chr($c)] = "&#$c;";
+        }
 		
 		$tests["http://foo/bar?baz=qux&ding=dong"] = "http://foo/bar?baz=qux&amp;ding=dong";
 		
@@ -103,7 +104,7 @@ class WebEscaperTest extends \PHPUnit_Framework_TestCase
 	 */
 	public function testQuotedJsReturnsEmptyQuotedString($value)
 	{
-		$result = (new WebEscaper)->quotedJs($value);
+		$result = (new WebEscaper)->jsQuoted($value);
 		$this->assertEquals('""', $result);
 	}
 
@@ -119,7 +120,7 @@ class WebEscaperTest extends \PHPUnit_Framework_TestCase
 	 */
 	public function testQuotedJs($value, $expected)
 	{
-		$result = (new WebEscaper)->quotedJs($value);
+		$result = (new WebEscaper)->jsQuoted($value);
 		$this->assertEquals($expected, $result);
 	}
 
@@ -187,8 +188,9 @@ class WebEscaperTest extends \PHPUnit_Framework_TestCase
 	private function keyValueToTests($in)
 	{	
 		$out = [];
-		foreach ($in as $k=>$v)
+		foreach ($in as $k=>$v) {
 			$out[] = [$k, $v];
+        }
 		return $out;
 	}
 	
@@ -263,6 +265,23 @@ class WebEscaperTest extends \PHPUnit_Framework_TestCase
 		];
 	}
 
+	/**
+	 * @dataProvider dataForHtmlComment
+	 */
+	public function testXmlComment($string)
+	{
+		$e = new WebEscaper();
+		$e->charset = 'UTF-8';
+
+		$pattern = '/(^>|^->|<!|--|-$)/';
+		$result = $e->xmlComment($string);
+		$this->assertNotRegexp($pattern, $result);
+
+		// the spec is ambiguous about leading or trailing whitespace
+		$result = trim($result);
+		$this->assertNotRegexp($pattern, $result);
+	}
+
     /**
      * @dataProvider dataForEscaperWithStringable
      */
@@ -276,9 +295,46 @@ class WebEscaperTest extends \PHPUnit_Framework_TestCase
     function dataForEscaperWithStringable()
     {
         return [
-            ['quotedJs', new Stringable("foo"), '"foo"'],
+            ['jsQuoted', new Stringable("foo"), '"foo"'],
             ['js', new Stringable("foo"), "foo"],
         ];
+    }
+
+    function dataForXml() 
+    {
+        $tests = [
+            ['foo "bar" yep', 'foo &quot;bar&quot; yep'],
+            ["foo 'bar' yep", 'foo &apos;bar&apos; yep'],
+        ];
+        return $tests;
+    }
+
+    /** @dataProvider dataForXml */
+    function testXmlAttribute($string, $escaped)
+    {
+        $e = new WebEscaper();
+        $e->charset = 'UTF-8';
+        $result = $e->xmlAttr($string);
+        $this->assertEquals($escaped, $result);
+
+        $xml = '<?xml version="1.0" encoding="UTF-8" ?'.'><elem attr="'.$result.'"/>';
+        $dom = new \DOMDocument();
+        $dom->loadXML($xml);
+        $this->assertEquals($string, $dom->firstChild->getAttribute('attr'));
+    }
+
+    /** @dataProvider dataForXml */
+    function testXmlElement($string, $escaped)
+    {
+        $e = new WebEscaper();
+        $e->charset = 'UTF-8';
+        $result = $e->xml($string);
+        $this->assertEquals($escaped, $result);
+
+        $xml = '<?xml version="1.0" encoding="UTF-8" ?'.'><elem>'.$result.'</elem>';
+        $dom = new \DOMDocument();
+        $dom->loadXML($xml);
+        $this->assertEquals($string, $dom->firstChild->textContent);
     }
 }
 

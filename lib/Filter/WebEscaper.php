@@ -43,7 +43,7 @@ class WebEscaper
      *   <a href="<?= $e->htmlAttr($string) ?>" />
      *   <a href='<?= $e->htmlAttr($string) ?>' />
      *
-     * Very invalid (use unquotedHtmlAttr instead):
+     * Very invalid (use htmlAttrUnquoted instead):
      *   <a href=<?= $e->htmlAttr($string) ?> />
      */
     public function htmlAttr($string)
@@ -82,6 +82,19 @@ class WebEscaper
         return $string;
     }
 
+    public function xml($string)
+    {
+        $out = htmlspecialchars($string, ENT_XML1 | ENT_QUOTES | ENT_SUBSTITUTE, $this->charset);
+
+        if ($string && !$out)
+            throw new \InvalidArgumentException("Escaping $string failed");
+
+        return $out;
+    }
+
+    public function xmlAttr($string)    { return $this->xml($string); }
+    public function xmlComment($string) { return $this->htmlComment($string); }
+
     /**
      * http://mathiasbynens.be/notes/css-escapes
      * Based on this (required for expedience, need to verify it's good enough):
@@ -117,6 +130,12 @@ class WebEscaper
         ]);
     }
 
+    /** @deprecated */
+    public function unquotedHtmlAttr($string)
+    {
+        return $this->htmlAttrUnquoted($string);
+    }
+
     /**
      * The output context of this function MUST be an unquoted HTML attribute.
      *
@@ -126,7 +145,7 @@ class WebEscaper
      * Very invalid (use htmlAttr instead):
      *   <a href="<?= $e->htmlAttr($string) ?>" />
      */
-    public function unquotedHtmlAttr($string)
+    public function htmlAttrUnquoted($string)
     {
         // http://wonko.com/post/html-escaping
         $html = $this->html($string);
@@ -153,16 +172,22 @@ class WebEscaper
         return $out;
     }
 
+    /** @deprecated */
+    public function quotedJs($value)
+    {
+        return $this->jsQuoted($value);
+    }
+
     /**
      * Returns a quoted, escaped string suitable for building javascript.
      *
      * for e.g.:
-     *     let foo = <?= $e->quotedJs("foo") ?>;
+     *     let foo = <?= $e->jsQuoted("foo") ?>;
      *
      * will become:
      *     let foo = "foo";
      */
-    public function quotedJs($value)
+    public function jsQuoted($value)
     {
         if ($value === false || $value === null) {
             return '""';
